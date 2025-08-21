@@ -10,12 +10,14 @@ import jakarta.persistence.Id;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import com.healthmate.healthmate.domain.preference.enums.PreferenceEnum;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
+@Setter
 public class Preference {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
