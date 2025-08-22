@@ -39,8 +39,9 @@ public class PreferenceController {
 		return ResponseEntity.ok(preferenceService.getPreference(id));
 	}
 
+
 	@GetMapping
-	public ResponseEntity<List<PreferenceResponseDto>> getPreferencesByExercise(@RequestParam Integer exerciseId) {
+	public ResponseEntity<List<PreferenceResponseDto>> getPreferencesByExercise(@RequestParam Long exerciseId) {
 		return ResponseEntity.ok(preferenceService.getPreferencesByExercise(exerciseId));
 	}
 
