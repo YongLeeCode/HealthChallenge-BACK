@@ -24,12 +24,5 @@ spring:
 
 security:
   jwt:
-    # base64-encoded 256-bit (32-byte) secret. Replace for production.
-    secret: c2VjcmV0LXNlY3JldC1zZWNyZXQtc2VjcmV0LXNlY3JldC1zZWNyZXQ=
-    access-validity-ms: 3600000
-
-security:
-  jwt:
-    # base64-encoded 256-bit (32-byte) secret. Replace for production.
     secret: ${JWT_SECRET}
     access-validity-ms: 3600000
