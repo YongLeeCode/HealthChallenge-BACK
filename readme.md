@@ -127,3 +127,93 @@
   - 별도 마이크로서비스로 구성 → API 호출 방식으로 프론트와 통신
 - 배포/자동화
   - CI/CD → AWS CodePipeline, GitHub Actions
+
+## 운동 기록 설계 요약
+
+### 배경과 목표
+- 최근 어떤 운동을 했고, 어느 정도 강도와 시간을 들였는지 한눈에 보여주는 지표가 필요함
+- 해당 지표를 바탕으로 다음 운동 추천에 활용
+- 원시 로그는 상세하게 남기되, 조회/추천은 날짜 단위 요약을 사용해 단순하고 빠르게 제공
+
+### 설계 개요
+- 원시 로그 테이블: `ExerciseRecord` (운동별 상세 기록)
+- 일일 집계 테이블: `ExerciseDailyRecord` (사용자×날짜 1행)
+- 조회/추천은 주로 `ExerciseDailyRecord`를 사용하고, 필요 시 `ExerciseRecord`로 드릴다운
+
+### 엔티티 주요 컬럼
+- ExerciseRecord (원시 로그)
+  - user, exercise, performedAt(운동 시각)
+  - durationSeconds(운동 시간), reps, sets, notes
+
+- ExerciseDailyRecord (일일 집계)
+  - user, date(운동한 날짜, 고유키: user+date)
+  - totalDurationSeconds(총 운동 시간), totalSets(총 세트)
+  - perceivedDifficulty(체감 난이도), satisfaction(만족도)
+  - representativeExercise(대표 운동, 선택), notes
+
+### API 엔드포인트
+- ExerciseRecord
+  - POST `/exercise-records`
+  - PUT `/exercise-records/{id}`
+  - DELETE `/exercise-records/{id}`
+  - GET `/exercise-records/{id}`
+  - GET `/exercise-records/users/{userId}`
+  - GET `/exercise-records/users/{userId}/date?date=YYYY-MM-DD`
+
+- ExerciseDailyRecord
+  - POST `/exercise-daily-records` (upsert, 같은 user+date면 업데이트)
+  - PUT `/exercise-daily-records/{id}`
+  - DELETE `/exercise-daily-records/{id}`
+  - GET `/exercise-daily-records/{id}`
+  - GET `/exercise-daily-records/users/{userId}/date?date=YYYY-MM-DD`
+  - GET `/exercise-daily-records/users/{userId}`
+
+### 선택한 구조의 이유
+- 기록은 많이 쌓이므로 집계 테이블로 대시보드/추천 쿼리를 단순화
+- 추천 로직이 필요로 하는 핵심 지표(난이도/만족도/시간)를 날짜 단위로 바로 제공
+- 대표 운동을 두어 “무엇을 했는지”의 맥락 유지, 필요 시 원시 로그로 세부 분석 가능
+
+### 확장 아이디어
+- 유효성 검증(예: 난이도 1~10, 만족도 1~5 범위)
+- 총 볼륨(세트×반복×중량) 등 추가 지표
+- `ExerciseRecord` 저장 시 해당 날짜의 `ExerciseDailyRecord` 자동 갱신(도메인 이벤트)
+
+## 도메인 개요
+
+### 현재 도메인
+- **Auth**: 로그인/회원가입, JWT 발급/검증
+  - 엔티티: 없음(세션 무상태), `User` 참조
+  - 주요: `/auth/login`, `/auth/signup`, 토큰 필터
+
+- **User**: 사용자 기본 정보 및 권한
+  - 엔티티: `User`, `UserRole`
+  - 주요: 사용자 조회/관리(추후 프로필 확장)
+
+- **Exercise**: 운동 사전(메타데이터)
+  - 엔티티: `Exercise`, `ExerciseDifficulty`
+  - 주요: `/exercises` CRUD, 추천 시 참조용 카탈로그
+
+- **Preference**: 사용자 선호 설정
+  - 엔티티: `Preference`, `PreferenceEnum`
+  - 주요: `/preferences` CRUD, 추천 가중치 입력
+
+- **ExerciseRecord**: 운동별 원시 기록 로그
+  - 엔티티: `ExerciseRecord`
+  - 주요: `/exercise-records` CRUD + 사용자/날짜별 조회
+
+- **ExerciseDailyRecord**: 사용자×날짜 집계 기록
+  - 엔티티: `ExerciseDailyRecord`
+  - 주요: `/exercise-daily-records` upsert/조회, 대시보드·추천용 핵심 지표
+
+### 예정/확장 도메인
+- **Routine**: 사용자 루틴(운동 목록, 순서, 세트/휴식 템플릿)
+  - 리소스: 루틴, 루틴 아이템, 실행 이력
+
+- **Timer**: 클라이언트 보조용 서버 설정 저장(선택)
+  - 리소스: 인터벌/세트 구성 프리셋
+
+- **Recommendation**: 추천/랭킹/챌린지
+  - 리소스: 추천 결과 캐시, 챌린지, 랭킹 스냅샷
+
+- **Analytics**: 통계/리포트
+  - 리소스: 월간/주간 요약, 목표 대비 달성률
