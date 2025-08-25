@@ -11,7 +11,9 @@ public record ExerciseResponseDto(
 	String equipment,
 	String howTo,
 	String targetMuscles,
-	String cautions
+	String cautions,
+	Boolean official,
+	Long createdByUserId
 ) {
 	public static ExerciseResponseDto from(Exercise e) {
 		return new ExerciseResponseDto(
@@ -22,7 +24,9 @@ public record ExerciseResponseDto(
 			e.getEquipment(),
 			e.getHowTo(),
 			e.getTargetMuscles(),
-			e.getCautions()
+			e.getCautions(),
+			e.isOfficial(),
+			e.getCreator() != null ? e.getCreator().getId() : null
 		);
 	}
 }

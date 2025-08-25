@@ -1,13 +1,17 @@
 package com.healthmate.healthmate.domain.exercise.entity;
 
 import com.healthmate.healthmate.domain.exercise.enums.ExerciseDifficulty;
+import com.healthmate.healthmate.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +47,13 @@ public class Exercise {
 
 	@Column(length = 1000)
 	private String cautions;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "creator_user_id")
+	private User creator;
+
+	@Column(nullable = false)
+	private boolean official = false;
 
 	public Exercise(String nameEn, String nameKo, ExerciseDifficulty difficulty,
 			String equipment, String howTo, String targetMuscles, String cautions) {
