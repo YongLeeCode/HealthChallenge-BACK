@@ -10,5 +10,5 @@ public interface PreferenceService {
 	void updatePreference(Long id, UpdatePreferenceRequestDto req);
 	void deletePreference(Long id);
 	PreferenceResponseDto getPreference(Long id);
-	List<PreferenceResponseDto> getPreferencesByExercise(Integer exerciseId);
+	List<PreferenceResponseDto> getPreferencesByExercise(Long exerciseId);
 }
