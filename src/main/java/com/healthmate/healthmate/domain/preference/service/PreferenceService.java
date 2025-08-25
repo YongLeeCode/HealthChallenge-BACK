@@ -6,9 +6,9 @@ import com.healthmate.healthmate.domain.preference.dto.response.PreferenceRespon
 import java.util.List;
 
 public interface PreferenceService {
-	Long addPreference(AddPreferenceRequestDto req);
-	void updatePreference(Long id, UpdatePreferenceRequestDto req);
-	void deletePreference(Long id);
+	Long addPreference(AddPreferenceRequestDto req, Long currentUserId);
+	void updatePreference(Long id, UpdatePreferenceRequestDto req, Long currentUserId);
+	void deletePreference(Long id, Long currentUserId);
 	PreferenceResponseDto getPreference(Long id);
-	List<PreferenceResponseDto> getPreferencesByExercise(Long exerciseId);
+	List<PreferenceResponseDto> getPreferencesByExercise(Long exerciseId, Long currentUserId);
 }

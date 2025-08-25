@@ -13,7 +13,6 @@ import com.healthmate.healthmate.domain.exercise.entity.Exercise;
 import com.healthmate.healthmate.domain.exercise.repository.ExerciseRepository;
 import com.healthmate.healthmate.domain.user.entity.User;
 import com.healthmate.healthmate.domain.user.repository.UserRepository;
-import com.healthmate.healthmate.global.security.SecurityUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,10 +24,9 @@ public class PreferenceServiceImpl implements PreferenceService{
     private final UserRepository userRepository;
 
 	@Override
-	public Long addPreference(AddPreferenceRequestDto req) {
-		Long userId = SecurityUtils.getCurrentUserIdOrThrow();
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+	public Long addPreference(AddPreferenceRequestDto req, Long currentUserId) {
+		User user = userRepository.findById(currentUserId)
+			.orElseThrow(() -> new IllegalStateException("User not found: " + currentUserId));
 		Exercise exercise = exerciseRepository.findById(req.exerciseId())
 			.orElseThrow(() -> new IllegalArgumentException("Exercise not found: " + req.exerciseId()));
 		Preference preference = new Preference(exercise, req.preference());
@@ -37,11 +35,10 @@ public class PreferenceServiceImpl implements PreferenceService{
 	}
 
 	@Override
-	public void updatePreference(Long id, UpdatePreferenceRequestDto req) {
+	public void updatePreference(Long id, UpdatePreferenceRequestDto req, Long currentUserId) {
 		Preference preference = preferenceRepository.findById(id)
 			.orElseThrow(() -> new IllegalArgumentException("Preference not found: " + id));
-		Long userId = SecurityUtils.getCurrentUserIdOrThrow();
-		if (!preference.getUser().getId().equals(userId)) {
+		if (!preference.getUser().getId().equals(currentUserId)) {
 			throw new IllegalStateException("Forbidden");
 		}
 		if (req.exerciseId() != null) {
@@ -56,13 +53,12 @@ public class PreferenceServiceImpl implements PreferenceService{
 	}
 
 	@Override
-	public void deletePreference(Long id) {
+	public void deletePreference(Long id, Long currentUserId) {
 		if (!preferenceRepository.existsById(id)) {
 			throw new IllegalArgumentException("Preference not found: " + id);
 		}
 		Preference p = preferenceRepository.findById(id).get();
-		Long userId = SecurityUtils.getCurrentUserIdOrThrow();
-		if (!p.getUser().getId().equals(userId)) {
+		if (!p.getUser().getId().equals(currentUserId)) {
 			throw new IllegalStateException("Forbidden");
 		}
 		preferenceRepository.deleteById(id);
@@ -76,9 +72,8 @@ public class PreferenceServiceImpl implements PreferenceService{
 	}
 
 	@Override
-	public List<PreferenceResponseDto> getPreferencesByExercise(Long exerciseId) {
-		Long userId = SecurityUtils.getCurrentUserIdOrThrow();
-		return preferenceRepository.findAllByUser_IdAndExercise_Id(userId, exerciseId)
+	public List<PreferenceResponseDto> getPreferencesByExercise(Long exerciseId, Long currentUserId) {
+		return preferenceRepository.findAllByUser_IdAndExercise_Id(currentUserId, exerciseId)
 			.stream()
 			.map(PreferenceResponseDto::from)
 			.collect(Collectors.toList());

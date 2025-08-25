@@ -6,9 +6,9 @@ import com.healthmate.healthmate.domain.exercise.dto.response.ExerciseResponseDt
 import java.util.List;
 
 public interface ExerciseService {
-	Long add(AddExerciseRequestDto req);
-	void update(Long id, UpdateExerciseRequestDto req);
-	void delete(Long id);
+	Long add(AddExerciseRequestDto req, Long currentUserId, boolean isAdmin);
+	void update(Long id, UpdateExerciseRequestDto req, Long currentUserId, boolean isAdmin);
+	void delete(Long id, Long currentUserId, boolean isAdmin);
 	ExerciseResponseDto get(Long id);
 	List<ExerciseResponseDto> list();
 }

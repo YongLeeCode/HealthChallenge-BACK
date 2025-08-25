@@ -217,3 +217,21 @@
 
 - **Analytics**: 통계/리포트
   - 리소스: 월간/주간 요약, 목표 대비 달성률
+
+## 권한/인가 정책
+
+### Exercise 생성/수정/삭제
+- 생성
+  - 로그인 사용자 누구나 생성 가능
+  - 생성 시 `creator`(User) 저장
+  - 생성한 사용자가 ADMIN이면 `official = true`, 일반 사용자는 `official = false`
+- 수정/삭제
+  - ADMIN: 모든 `Exercise` 수정/삭제 가능
+  - 일반 유저: 자신이 만든(`creator == 본인`) `Exercise`만 수정/삭제 가능
+- 응답 필드
+  - `official`: 공식 운동 여부
+  - `createdByUserId`: 생성자 User ID
+
+추가 확장
+- 컨트롤러 레벨 `@PreAuthorize`로 2중 방어 가능
+- `official` 변경은 ADMIN만 허용하도록 서비스/컨트롤러에서 검증

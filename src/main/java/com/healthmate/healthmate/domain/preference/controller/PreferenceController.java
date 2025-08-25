@@ -3,6 +3,7 @@ package com.healthmate.healthmate.domain.preference.controller;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.healthmate.healthmate.domain.preference.dto.request.AddPreferenceRequestDto;
@@ -18,19 +19,19 @@ public class PreferenceController {
 	private final PreferenceService preferenceService;
 
 	@PostMapping
-	public ResponseEntity<Long> addPreference(@RequestBody AddPreferenceRequestDto req) {
-		return ResponseEntity.ok(preferenceService.addPreference(req));
+	public ResponseEntity<Long> addPreference(@RequestBody AddPreferenceRequestDto req, @AuthenticationPrincipal Long userId) {
+		return ResponseEntity.ok(preferenceService.addPreference(req, userId));
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<Void> updatePreference(@PathVariable Long id, @RequestBody UpdatePreferenceRequestDto req) {
-		preferenceService.updatePreference(id, req);
+	public ResponseEntity<Void> updatePreference(@PathVariable Long id, @RequestBody UpdatePreferenceRequestDto req, @AuthenticationPrincipal Long userId) {
+		preferenceService.updatePreference(id, req, userId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deletePreference(@PathVariable Long id) {
-		preferenceService.deletePreference(id);
+	public ResponseEntity<Void> deletePreference(@PathVariable Long id, @AuthenticationPrincipal Long userId) {
+		preferenceService.deletePreference(id, userId);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -41,8 +42,8 @@ public class PreferenceController {
 
 
 	@GetMapping
-	public ResponseEntity<List<PreferenceResponseDto>> getPreferencesByExercise(@RequestParam Long exerciseId) {
-		return ResponseEntity.ok(preferenceService.getPreferencesByExercise(exerciseId));
+	public ResponseEntity<List<PreferenceResponseDto>> getPreferencesByExercise(@RequestParam Long exerciseId, @AuthenticationPrincipal Long userId) {
+		return ResponseEntity.ok(preferenceService.getPreferencesByExercise(exerciseId, userId));
 	}
 
 }
