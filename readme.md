@@ -235,3 +235,9 @@
 추가 확장
 - 컨트롤러 레벨 `@PreAuthorize`로 2중 방어 가능
 - `official` 변경은 ADMIN만 허용하도록 서비스/컨트롤러에서 검증
+
+
+
+# ERD
+[ERD 설계도](https://www.erdcloud.com/d/eAhEK33Aor42jEHGK)
+![erd 초기 설계도](../../../../../var/folders/w2/b2zmxb0x39lfzp0_dmpzxfwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_bwwtLl/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202025-08-29%20%EC%98%A4%ED%9B%84%206.40.53.png)

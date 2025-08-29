@@ -18,10 +18,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void updateUserRole(UpdateUserRoleRequestDto requestDto) {
-        User user = userRepository.findById(requestDto.userId())
-            .orElseThrow(() -> new IllegalArgumentException("User not found: " + requestDto.userId()));
+        User user = userRepository.findByEmail(requestDto.email())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + requestDto.email()));
         user.setRole(requestDto.role());
-        // JPA dirty checking will persist the change at transaction commit
     }
 }
 
