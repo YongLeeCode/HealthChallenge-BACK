@@ -236,8 +236,76 @@
 - 컨트롤러 레벨 `@PreAuthorize`로 2중 방어 가능
 - `official` 변경은 ADMIN만 허용하도록 서비스/컨트롤러에서 검증
 
+## 인증/인가 전략
+
+### 인증 (Authentication)
+- **JWT 기반 무상태 인증**
+  - `Authorization: Bearer {token}` 헤더로 요청 인증
+  - 토큰 유효기간: 1시간 (3600000ms)
+  - HS256 알고리즘으로 서명, BASE64 인코딩된 256비트 시크릿 키 사용
+
+- **로그인 플로우**
+  - POST `/auth/signup`: 이메일/비밀번호로 회원가입 (기본 `USER` 권한)
+  - POST `/auth/signin`: 이메일/비밀번호로 로그인 → JWT 토큰 발급
+  - 비밀번호: BCrypt로 해시화하여 저장
+
+- **토큰 구조**
+  - `sub`: 사용자 ID (Long)
+  - `email`: 사용자 이메일
+  - `role`: 사용자 권한 (`USER`, `ADMIN`)
+  - `iat`: 발급 시간
+  - `exp`: 만료 시간
+
+### 인가 (Authorization)
+- **역할 기반 접근 제어 (RBAC)**
+  - `USER`: 일반 사용자 (기본 권한)
+  - `ADMIN`: 관리자 (모든 권한)
+
+- **보안 필터 체인**
+  - `JwtAuthenticationFilter`: JWT 토큰 파싱 및 `SecurityContext` 설정
+  - `SecurityConfig`: HTTP 요청별 인증 요구사항 설정
+  - `/auth/**`: 인증 없이 접근 가능 (회원가입/로그인)
+  - `/actuator/**`: 모니터링 엔드포인트 (인증 없이 접근 가능)
+  - 기타 모든 요청: JWT 토큰 필요
+
+- **도메인별 권한 정책**
+  - **Exercise**: 생성자 기반 + 역할 기반 혼합 정책
+    - 생성: 로그인 사용자 누구나
+    - 수정/삭제: ADMIN 또는 본인 소유
+  - **User**: 본인 정보만 조회/수정 (ADMIN은 모든 사용자 관리 가능)
+  - **Preference**: 본인 설정만 조회/수정
+  - **ExerciseRecord/DailyRecord**: 본인 기록만 조회/수정
+
+### 보안 설정
+- **Spring Security 구성**
+  - CSRF 비활성화 (JWT 기반 API이므로)
+  - 세션 무상태 정책 (`STATELESS`)
+  - 메서드 레벨 보안 활성화 (`@EnableMethodSecurity`)
+  - `@PreAuthorize` 어노테이션으로 컨트롤러 레벨 권한 검증 가능
+
+- **환경 변수**
+  - `JWT_SECRET`: BASE64 인코딩된 256비트 시크릿 키
+  - `JWT_ACCESS_VALIDITY_MS`: 토큰 유효기간 (기본: 1시간)
+
+### 확장 계획
+- **소셜 로그인 통합**
+  - OAuth2 Client로 Google, Kakao, Naver 로그인 지원
+  - 소셜 인증 후 JWT 토큰 발급으로 통일된 인증 체계
+
+- **토큰 갱신**
+  - Refresh Token 발급으로 Access Token 자동 갱신
+  - 토큰 블랙리스트 관리 (로그아웃 시)
+
+- **권한 세분화**
+  - `MODERATOR`: 운동 검증/승인 권한
+  - `PREMIUM_USER`: 고급 기능 접근 권한
+
+- **API 레벨 보안**
+  - Rate Limiting (API 호출 제한)
+  - Request Logging (보안 감사)
+  - IP 화이트리스트/블랙리스트
 
 
-# ERD
+# ERD v1
 [ERD 설계도](https://www.erdcloud.com/d/eAhEK33Aor42jEHGK)
 ![erd 초기 설계도](../../../../../var/folders/w2/b2zmxb0x39lfzp0_dmpzxfwr0000gn/T/TemporaryItems/NSIRD_screencaptureui_bwwtLl/%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7%202025-08-29%20%EC%98%A4%ED%9B%84%206.40.53.png)
