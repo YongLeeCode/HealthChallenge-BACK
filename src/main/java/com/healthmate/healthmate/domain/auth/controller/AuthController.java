@@ -18,7 +18,7 @@ public class AuthController {
 	@PostMapping("/signup")
 	public ResponseEntity<Void> signUp(@RequestBody SignUpRequest req) {
 		authService.signUp(req);
-		return ResponseEntity.ok().build();
+		return ResponseEntity.status(201).build();
 	}
 
 	@PostMapping("/signin")
