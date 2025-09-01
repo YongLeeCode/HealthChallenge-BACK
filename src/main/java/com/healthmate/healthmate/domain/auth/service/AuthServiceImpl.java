@@ -22,9 +22,12 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public void signUp(SignUpRequest req) {
 		if (userRepository.existsByEmail(req.email())) {
-			throw new IllegalArgumentException("Email already in use");
+			throw new IllegalArgumentException("EMAIL_DUPLICATE");
 		}
-		User user = new User(req.email(), passwordEncoder.encode(req.password()), UserRole.USER);
+		if (userRepository.existsByNickname(req.nickname())) {
+			throw new IllegalArgumentException("NICKNAME_DUPLICATE");
+		}
+		User user = new User(req.email(), passwordEncoder.encode(req.password()), req.dob(), req.nickname(), UserRole.USER);
 		userRepository.save(user);
 	}
 
