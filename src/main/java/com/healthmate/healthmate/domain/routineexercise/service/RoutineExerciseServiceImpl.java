@@ -108,7 +108,7 @@ public class RoutineExerciseServiceImpl implements RoutineExerciseService {
         return new RoutineExerciseResponse(
                 routineExercise.getId(),
                 routineExercise.getExercise().getId(),
-                routineExercise.getExercise().getName(),
+                routineExercise.getExercise().getNameKo(),
                 routineExercise.getExercise().getDescription(),
                 routineExercise.getSetNumber(),
                 routineExercise.getCountNumber(),
