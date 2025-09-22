@@ -4,7 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 
-import com.healthmate.backendv2.user.dto.UserDtos.*;
+import com.healthmate.backendv2.user.dto.UserResponse;
+import com.healthmate.backendv2.user.dto.ProfileUpdateRequest;
+import com.healthmate.backendv2.user.dto.PasswordChangeRequest;
 import com.healthmate.backendv2.user.entity.User;
 import com.healthmate.backendv2.user.repository.UserRepository;
 
@@ -16,12 +18,12 @@ public class UserServiceImpl implements UserService {
 	private final PasswordEncoder passwordEncoder;
 
 	@Override
-	public Response getById(Long id) {
-		return Response.from(userRepository.findById(id).orElseThrow());
+	public UserResponse getById(Long id) {
+		return UserResponse.from(userRepository.findById(id).orElseThrow());
 	}
 
 	@Override
-	public Response updateProfile(Long id, ProfileUpdateRequest request) {
+	public UserResponse updateProfile(Long id, ProfileUpdateRequest request) {
 		User user = userRepository.findById(id).orElseThrow();
 		
 		user = User.builder()
@@ -37,7 +39,7 @@ public class UserServiceImpl implements UserService {
 				.build();
 		
 		User savedUser = userRepository.save(user);
-		return Response.from(savedUser);
+		return UserResponse.from(savedUser);
 	}
 
 	@Override

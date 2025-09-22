@@ -18,9 +18,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.healthmate.backendv2.user.dto.UserDtos.Response;
-import com.healthmate.backendv2.user.dto.UserDtos.ProfileUpdateRequest;
-import com.healthmate.backendv2.user.dto.UserDtos.PasswordChangeRequest;
+import com.healthmate.backendv2.user.dto.UserResponse;
+import com.healthmate.backendv2.user.dto.ProfileUpdateRequest;
+import com.healthmate.backendv2.user.dto.PasswordChangeRequest;
 import com.healthmate.backendv2.user.entity.User;
 import com.healthmate.backendv2.user.repository.UserRepository;
 import com.healthmate.backendv2.user.service.UserServiceImpl;
@@ -54,7 +54,7 @@ public class UserServiceTest {
 		when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// when
-		Response result = userService.updateProfile(userId, request);
+		UserResponse result = userService.updateProfile(userId, request);
 
 		// then
 		assertNotNull(result);
@@ -120,7 +120,7 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         
         // when
-        Response foundUser = userService.getById(userId);
+        UserResponse foundUser = userService.getById(userId);
         
         // then
         assertNotNull(foundUser);

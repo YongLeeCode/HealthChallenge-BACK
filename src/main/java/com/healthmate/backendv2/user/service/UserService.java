@@ -1,9 +1,11 @@
 package com.healthmate.backendv2.user.service;
 
-import com.healthmate.backendv2.user.dto.UserDtos.*;
+import com.healthmate.backendv2.user.dto.UserResponse;
+import com.healthmate.backendv2.user.dto.ProfileUpdateRequest;
+import com.healthmate.backendv2.user.dto.PasswordChangeRequest;
 
 public interface UserService {
-    Response getById(Long id);
-    Response updateProfile(Long id, ProfileUpdateRequest request);
+    UserResponse getById(Long id);
+    UserResponse updateProfile(Long id, ProfileUpdateRequest request);
     void changePassword(Long id, PasswordChangeRequest request);
 }
