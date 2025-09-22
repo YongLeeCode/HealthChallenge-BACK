@@ -39,6 +39,22 @@ public class UserDtos {
                     .build();
         }
     }
+
+    @Value
+    @Builder
+    public static class ProfileUpdateRequest {
+        @NotBlank String username;
+        @Email @NotBlank String email;
+        String profileImageUrl;
+        @Past LocalDate birthday;
+    }
+
+    @Value
+    @Builder
+    public static class PasswordChangeRequest {
+        @NotBlank String currentPassword;
+        @NotBlank String newPassword;
+    }
 }
 
 
