@@ -16,17 +16,6 @@ public class UserDtos {
 
     @Value
     @Builder
-    public static class CreateRequest {
-        @NotBlank String username;
-        @NotBlank String password;
-        @NotBlank @Email String email;
-        String profileImageUrl;
-        @Past LocalDate birthday;
-        RankTier rankTier;
-    }
-
-    @Value
-    @Builder
     public static class Response {
         @NotNull Long id;
         String username;

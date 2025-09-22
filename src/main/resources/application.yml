@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: backendv2
+  datasource:
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+    #    username: ${DB_USERNAME}
+    #    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    #    url: ${DB_URL}
+    username: yong311
+    password: ghks9430
+    url: jdbc:mysql://health-mate-db.c14si82oeh16.ap-northeast-2.rds.amazonaws.com:3306/health-mate
+    jpa:
+      hibernate:
+        ddl-auto: update
+      properties:
+        hibernate:
+          show_sql: false
+          format_sql: false
+          use_sql_comments: false
+          dialect: org.hibernate.dialect.MySQLDialect
+          highlight_sql: false

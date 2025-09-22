@@ -8,17 +8,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.healthmate.backendv2.user.RankTier;
 
 @Entity
 @Table(name = "users")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -71,6 +70,14 @@ public class User {
     public void preUpdate() {
         this.updatedAt = OffsetDateTime.now();
     }
+
+	// 테스트 전용 생성자 (테스트 패키지에서만 접근 가능하게)
+	@VisibleForTesting
+	public User(Long id, String username, String email) {
+		this.id = id;
+		this.username = username;
+		this.email = email;
+	}
 }
 
 
