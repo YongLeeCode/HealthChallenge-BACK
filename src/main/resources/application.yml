@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: backendv2
+  datasource:
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL}
+
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+
+    jpa:
+      hibernate:
+        ddl-auto: update
+      properties:
+        hibernate:
+          show_sql: false
+          format_sql: false
+          use_sql_comments: false
+          dialect: org.hibernate.dialect.MySQLDialect
+          highlight_sql: false
