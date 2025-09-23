@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Value
 @Builder
 public class ProfileUpdateRequest {
-    @NotBlank String username;
+    @NotBlank String nickname;
     @Email @NotBlank String email;
     String profileImageUrl;
     @Past LocalDate birthday;

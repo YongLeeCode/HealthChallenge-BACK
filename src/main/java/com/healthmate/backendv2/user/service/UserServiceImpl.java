@@ -28,7 +28,7 @@ public class UserServiceImpl implements UserService {
 		
 		user = User.builder()
 				.id(user.getId())
-				.username(request.getUsername())
+				.nickname(request.getNickname())
 				.email(request.getEmail())
 				.password(user.getPassword()) // 기존 비밀번호 유지
 				.profileImageUrl(request.getProfileImageUrl())
@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService {
 		// 새 비밀번호로 업데이트
 		user = User.builder()
 				.id(user.getId())
-				.username(user.getUsername())
+				.nickname(user.getNickname())
 				.email(user.getEmail())
 				.password(passwordEncoder.encode(request.getNewPassword()))
 				.profileImageUrl(user.getProfileImageUrl())
