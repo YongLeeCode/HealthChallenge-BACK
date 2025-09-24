@@ -13,7 +13,6 @@ public class TokenBlacklistService {
     
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtUtils jwtUtils;
-    
     private static final String BLACKLIST_PREFIX = "blacklist:";
     
     /**
