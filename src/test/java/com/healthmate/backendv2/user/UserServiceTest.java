@@ -44,7 +44,7 @@ public class UserServiceTest {
 		Long userId = 1L;
 		User existingUser = mockUser();
 		ProfileUpdateRequest request = ProfileUpdateRequest.builder()
-				.username("updatedUser")
+				.nickname("updatedUser")
 				.email("updated@example.com")
 				.profileImageUrl("https://example.com/profile.jpg")
 				.birthday(LocalDate.of(1990, 1, 1))
@@ -58,7 +58,7 @@ public class UserServiceTest {
 
 		// then
 		assertNotNull(result);
-		assertEquals("updatedUser", result.getUsername());
+		assertEquals("updatedUser", result.getNickname());
 		assertEquals("updated@example.com", result.getEmail());
 		assertEquals("https://example.com/profile.jpg", result.getProfileImageUrl());
 		assertEquals(LocalDate.of(1990, 1, 1), result.getBirthday());
@@ -124,7 +124,7 @@ public class UserServiceTest {
         
         // then
         assertNotNull(foundUser);
-        assertEquals("testUser", foundUser.getUsername());
+        assertEquals("testUser", foundUser.getNickname());
         assertEquals("test@example.com", foundUser.getEmail());
     }
     
@@ -144,7 +144,7 @@ public class UserServiceTest {
 	private User mockUser() {
 		return User.builder()
 				.id(1L)
-				.username("testUser")
+				.nickname("testUser")
 				.email("test@example.com")
 				.password("encodedPassword")
 				.rankTier(com.healthmate.backendv2.user.RankTier.BRONZE)
@@ -156,7 +156,7 @@ public class UserServiceTest {
 	private User mockUserWithPassword(String password) {
 		return User.builder()
 				.id(1L)
-				.username("testUser")
+				.nickname("testUser")
 				.email("test@example.com")
 				.password(password)
 				.rankTier(com.healthmate.backendv2.user.RankTier.BRONZE)

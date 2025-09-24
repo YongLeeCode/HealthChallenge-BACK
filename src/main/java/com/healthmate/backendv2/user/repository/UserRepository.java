@@ -7,8 +7,9 @@ import java.util.Optional;
 import com.healthmate.backendv2.user.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
-    boolean existsByUsername(String username);
+    Optional<User> findByNickname(String nickname);
+    Optional<User> findByEmail(String email);
+    boolean existsByNickname(String nickname);
     boolean existsByEmail(String email);
 }
 

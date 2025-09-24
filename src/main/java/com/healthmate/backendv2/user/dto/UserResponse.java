@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Builder
 public class UserResponse {
     @NotNull Long id;
-    String username;
+    String nickname;
     String email;
     String profileImageUrl;
     LocalDate birthday;
@@ -24,7 +24,7 @@ public class UserResponse {
     public static UserResponse from(User user) {
         return UserResponse.builder()
                 .id(user.getId())
-                .username(user.getUsername())
+                .nickname(user.getNickname())
                 .email(user.getEmail())
                 .profileImageUrl(user.getProfileImageUrl())
                 .birthday(user.getBirthday())

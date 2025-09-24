@@ -11,13 +11,30 @@ spring:
       connection-timeout: 30000
       maximum-pool-size: 10
 
-    jpa:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
       hibernate:
-        ddl-auto: update
-      properties:
-        hibernate:
-          show_sql: false
-          format_sql: false
-          use_sql_comments: false
-          dialect: org.hibernate.dialect.MySQLDialect
-          highlight_sql: false
+        show_sql: true
+        format_sql: true
+        use_sql_comments: false
+        dialect: org.hibernate.dialect.MySQLDialect
+        highlight_sql: false
+
+jwt:
+  secret: c2VjcmV0LXNlY3JldC1zZWNyZXQtc2VjcmV0LXNlY3JldC1zZWNyZXQtc2VjcmV0
+  access-token-expiration: 900000  # 15분 (밀리초)
+  refresh-token-expiration: 604800000  # 7일 (밀리초)
+  issuer: health-challenge
+
+redis:
+#  host: ${REDIS_HOST:localhost}
+#  port: ${REDIS_PORT:6379}
+#  password: ${REDIS_PASSWORD:redisyong}
+#  database: ${REDIS_DATABASE:health}
+#
+  host: localhost
+  port: 6379
+  password: redisyong
+  database: health

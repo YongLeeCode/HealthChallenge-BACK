@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: health-challenge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: health_challenge
+      MYSQL_USER: yong311
+      MYSQL_PASSWORD: yong311
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - health-challenge-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: health-challenge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass redisyong
+    networks:
+      - health-challenge-network
+
+  # 개발용 phpMyAdmin (선택사항)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: health-challenge-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: yong311
+      PMA_PASSWORD: yong311
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - health-challenge-network
+
+  # 개발용 Redis Commander (선택사항)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: health-challenge-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redisyong
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+    networks:
+      - health-challenge-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  health-challenge-network:
+    driver: bridge

@@ -9,12 +9,39 @@
 # 기술 스택 (Tech Stack)
 - **언어**: Java 17
 - **프레임워크**: Spring Boot 3.x
-- **데이터베이스:** `MySQL` (RDS), `Redis` (캐싱, 랭킹)
+- **데이터베이스:** `MySQL` (Docker), `Redis` (캐싱, 랭킹)
 - **ORM:** `Spring Data JPA`
+- **인증/보안:** `Spring Security`, `JWT`
 - **메시지 브로커**: `Apache Kafka`
 - **배포/인프라:** `AWS EC2`, `AWS S3`, `AWS RDS`, `Docker`
 - **CI/CD:** `Git`, `GitHub Actions`
 - **테스트:** `JUnit 5`, `Mockito`, `JMeter`
+
+## 개발 환경 설정
+### Docker 컨테이너 실행
+```bash
+# MySQL, Redis 컨테이너 실행
+docker-compose up -d
+
+# 컨테이너 상태 확인
+docker-compose ps
+```
+
+### 환경변수 설정
+`.env` 파일을 생성하고 다음 내용을 추가:
+```env
+DB_USERNAME=yong311
+DB_PASSWORD=yong311
+DB_URL=jdbc:mysql://localhost:3306/health_challenge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+```
+
+### 애플리케이션 실행
+
+### API 테스트
+- **서버 주소**: `http://localhost:8083`
+- **회원가입**: `POST /api/auth/signup`
+- **로그인**: `POST /api/auth/login`
+- **로그아웃**: `POST /api/auth/signout`
 
 ---
 

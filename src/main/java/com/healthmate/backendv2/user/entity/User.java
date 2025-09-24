@@ -29,7 +29,7 @@ public class User {
 
     @Column(nullable = false, unique = true, length = 50)
     @NotBlank
-    private String username;
+    private String nickname;
 
     @Column(nullable = false)
     @NotBlank
@@ -73,9 +73,9 @@ public class User {
 
 	// 테스트 전용 생성자 (테스트 패키지에서만 접근 가능하게)
 	@VisibleForTesting
-	public User(Long id, String username, String email) {
+	public User(Long id, String nickname, String email) {
 		this.id = id;
-		this.username = username;
+		this.nickname = nickname;
 		this.email = email;
 	}
 }
