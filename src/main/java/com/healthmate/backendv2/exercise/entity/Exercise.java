@@ -48,15 +48,15 @@ public class Exercise {
 
 
     // 테스트 전용 생성자 (테스트 패키지에서만 접근 가능하게)
-    @VisibleForTesting
-    public Exercise(Long id, String name, String description, MeasurementType measurementType, 
-                   MuscleFocusArea muscleFocusArea, ExerciseType exerciseType, String imageUrl) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.measurementType = measurementType;
-        this.muscleFocusArea = muscleFocusArea;
-        this.exerciseType = exerciseType;
-        this.imageUrl = imageUrl;
-    }
+    // @VisibleForTesting
+    // public Exercise(Long id, String name, String description, MeasurementType measurementType,
+    //                MuscleFocusArea muscleFocusArea, ExerciseType exerciseType, String imageUrl) {
+    //     this.id = id;
+    //     this.name = name;
+    //     this.description = description;
+    //     this.measurementType = measurementType;
+    //     this.muscleFocusArea = muscleFocusArea;
+    //     this.exerciseType = exerciseType;
+    //     this.imageUrl = imageUrl;
+    // }
 }
