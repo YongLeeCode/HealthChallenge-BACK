@@ -53,7 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (nickname != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // 토큰이 블랙리스트에 있는지 확인
                 if (tokenBlacklistService.isBlacklisted(jwt)) {
-                    filterChain.doFilter(request, response);
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write("{\"error\":\"Token is blacklisted\"}");
                     return;
                 }
                 

@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         show_sql: true
@@ -29,12 +29,14 @@ jwt:
   issuer: health-challenge
 
 redis:
-#  host: ${REDIS_HOST:localhost}
-#  port: ${REDIS_PORT:6379}
-#  password: ${REDIS_PASSWORD:redisyong}
-#  database: ${REDIS_DATABASE:health}
-#
   host: localhost
   port: 6379
-  password: redisyong
-  database: health
+  password: ${REDIS_PASSWORD}
+  database: 0
+  lettuce:
+    pool:
+      max-active: 8
+      max-idle: 8
+      min-idle: 0
+      max-wait: -1ms
+    timeout: 2000ms
