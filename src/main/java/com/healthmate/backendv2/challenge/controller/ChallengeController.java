@@ -1,6 +1,7 @@
 package com.healthmate.backendv2.challenge.controller;
 
 import com.healthmate.backendv2.challenge.dto.*;
+import com.healthmate.backendv2.challenge.service.ChallengeBatchService;
 import com.healthmate.backendv2.challenge.service.ChallengeService;
 import com.healthmate.backendv2.challenge.service.ChallengeServiceWithTimeAttack;
 import com.healthmate.backendv2.challenge.service.ChallengeServiceWithWeight;
@@ -29,6 +30,7 @@ public class ChallengeController {
     private final ChallengeServiceWithWeight weightService;
     private final ChallengeServiceWithWorkingTime workingTimeService;
     private final LeaderboardService leaderboardService;
+    private final ChallengeBatchService challengeBatchService;
     private final JwtUtils jwtUtils;
     
     /**
@@ -76,6 +78,24 @@ public class ChallengeController {
         log.info("User {} submitting working time exercise {}", userId, request.getExerciseId());
         
         ChallengeSubmissionResponse response = workingTimeService.submitWorkingTimeExercise(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * 챌린지 전체 제출 (배치 처리)
+     */
+    @PostMapping("/submit/batch")
+    public ResponseEntity<ChallengeBatchSubmissionResponse> submitChallengeBatch(
+            @Valid @RequestBody ChallengeBatchSubmissionRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("=== Challenge Batch Submission ===");
+        log.info("Request: {}", request);
+        
+        Long userId = getCurrentUserIdFromJWT(httpRequest);
+        log.info("User {} submitting challenge batch: {}", userId, request.getChallengeId());
+        
+        ChallengeBatchSubmissionResponse response = challengeBatchService.submitChallengeBatch(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
