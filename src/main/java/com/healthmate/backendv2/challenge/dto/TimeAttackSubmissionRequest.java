@@ -20,9 +20,5 @@ public class TimeAttackSubmissionRequest {
     @Positive(message = "완료 시간은 양수여야 합니다")
     private Integer completionTimeSeconds;
     
-    @NotNull(message = "목표 횟수는 필수입니다")
-    @Positive(message = "목표 횟수는 양수여야 합니다")
-    private Integer targetCount;
-    
     private String notes;
 }

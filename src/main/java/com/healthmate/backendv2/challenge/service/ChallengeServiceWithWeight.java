@@ -49,11 +49,10 @@ public class ChallengeServiceWithWeight implements ChallengeService {
             throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
         }
         
-        // 근력 점수 계산 (무게, 세트, 반복 횟수 기반)
+        // 근력 점수 계산 (무게, 횟수 기반)
         int pointsEarned = calculateWeightPoints(
-            request.getWeightKg(),
-            request.getSets(),
-            request.getReps()
+            request.getMaxWeightKg(),
+            request.getCounts()
         );
         
         // 현재 주간 챌린지 키
@@ -62,29 +61,30 @@ public class ChallengeServiceWithWeight implements ChallengeService {
         
         // 기존 포인트 조회
         Double currentPoints = challengeRedisRepository.getUserPoints(challengeKey, userId);
-        int totalPoints = (currentPoints != null ? currentPoints.intValue() : 0) + pointsEarned;
         
-        // Redis에 포인트 업데이트
-        challengeRedisRepository.addUserPoints(challengeKey, userId, totalPoints);
+        // 최고 기록 갱신 (새 점수가 더 높을 때만 업데이트)
+        boolean isNewRecord = currentPoints == null || pointsEarned > currentPoints.intValue();
+        int finalPoints = isNewRecord ? pointsEarned : (currentPoints != null ? currentPoints.intValue() : 0);
         
-        // 사용자별 포인트 히스토리 저장
-        challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, totalPoints);
+        if (isNewRecord) {
+            challengeRedisRepository.updateUserPointsIfHigher(challengeKey, userId, pointsEarned);
+            challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, pointsEarned);
+        }
         
         // 현재 순위 조회
         Long currentRank = challengeRedisRepository.getUserRank(challengeKey, userId);
         
-        log.info("User {} submitted weight exercise {} with {}kg, {} sets, {} reps, earned {} points, total: {}, rank: {}", 
-                userId, request.getExerciseId(), request.getWeightKg(), request.getSets(), 
-                request.getReps(), pointsEarned, totalPoints, currentRank);
+        log.info("User {} submitted weight exercise {} with {}kg, {} counts, earned {} points, final: {}, rank: {}, newRecord: {}", 
+                userId, request.getExerciseId(), request.getMaxWeightKg(), request.getCounts(), 
+                pointsEarned, finalPoints, currentRank, isNewRecord);
         
         return ChallengeSubmissionResponse.builder()
                 .submissionId(System.currentTimeMillis())
                 .exerciseId(request.getExerciseId())
                 .exerciseName(exerciseResponse.getName())
-                .sets(request.getSets())
                 .durationMinutes(0) // 무게 운동은 시간이 아닌 세트/반복 기반
                 .pointsEarned(pointsEarned)
-                .totalPoints(totalPoints)
+                .totalPoints(finalPoints)
                 .currentRank(currentRank != null ? currentRank.intValue() : 0)
                 .submittedAt(LocalDateTime.now())
                 .notes(request.getNotes())
@@ -139,20 +139,17 @@ public class ChallengeServiceWithWeight implements ChallengeService {
     /**
      * 무게 기반 점수 계산 로직
      */
-    private int calculateWeightPoints(Double weightKg, Integer sets, Integer reps) {
-        // 기본 점수: 무게 * 세트 * 반복
-        int basePoints = (int) (weightKg * sets * reps * BASE_POINTS_PER_KG);
+    private int calculateWeightPoints(Double maxWeightKg, Integer counts) {
+        // 기본 점수: 무게 * 횟수
+        int basePoints = (int) (maxWeightKg * counts * BASE_POINTS_PER_KG);
         
-        // 세트 보너스
-        int setBonus = sets * BASE_POINTS_PER_SET;
-        
-        // 반복 보너스
-        int repBonus = reps * BASE_POINTS_PER_REP;
+        // 횟수 보너스
+        int countBonus = counts * BASE_POINTS_PER_REP;
         
         // 무거운 무게 보너스 (50kg 이상)
-        double weightMultiplier = weightKg >= 50.0 ? HEAVY_WEIGHT_MULTIPLIER : 1.0;
+        double weightMultiplier = maxWeightKg >= 50.0 ? HEAVY_WEIGHT_MULTIPLIER : 1.0;
         
-        return (int) Math.round((basePoints + setBonus + repBonus) * weightMultiplier);
+        return (int) Math.round((basePoints + countBonus) * weightMultiplier);
     }
     
     /**

@@ -37,7 +37,17 @@ public class ChallengeRedisRepository {
     }
     
     /**
-     * 사용자 포인트 추가/업데이트
+     * 사용자 포인트 추가/업데이트 (최고 기록 갱신)
+     */
+    public void updateUserPointsIfHigher(String challengeKey, Long userId, double newPoints) {
+        Double currentPoints = getUserPoints(challengeKey, userId);
+        if (currentPoints == null || newPoints > currentPoints) {
+            zSetOperations.add(challengeKey, userId.toString(), newPoints);
+        }
+    }
+    
+    /**
+     * 사용자 포인트 추가/업데이트 (기존 방식 - 합산)
      */
     public void addUserPoints(String challengeKey, Long userId, double points) {
         zSetOperations.add(challengeKey, userId.toString(), points);

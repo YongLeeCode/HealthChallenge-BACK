@@ -50,10 +50,7 @@ public class ChallengeServiceWithTimeAttack implements ChallengeService {
         }
         
         // 민첩성 점수 계산 (빠를수록 높은 점수)
-        int pointsEarned = calculateTimeAttackPoints(
-            request.getCompletionTimeSeconds(), 
-            request.getTargetCount()
-        );
+        int pointsEarned = calculateTimeAttackPoints(request.getCompletionTimeSeconds());
         
         // 현재 주간 챌린지 키
         LocalDate currentWeek = getCurrentWeekStart();
@@ -61,29 +58,30 @@ public class ChallengeServiceWithTimeAttack implements ChallengeService {
         
         // 기존 포인트 조회
         Double currentPoints = challengeRedisRepository.getUserPoints(challengeKey, userId);
-        int totalPoints = (currentPoints != null ? currentPoints.intValue() : 0) + pointsEarned;
         
-        // Redis에 포인트 업데이트
-        challengeRedisRepository.addUserPoints(challengeKey, userId, totalPoints);
+        // 최고 기록 갱신 (새 점수가 더 높을 때만 업데이트)
+        boolean isNewRecord = currentPoints == null || pointsEarned > currentPoints.intValue();
+        int finalPoints = isNewRecord ? pointsEarned : (currentPoints != null ? currentPoints.intValue() : 0);
         
-        // 사용자별 포인트 히스토리 저장
-        challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, totalPoints);
+        if (isNewRecord) {
+            challengeRedisRepository.updateUserPointsIfHigher(challengeKey, userId, pointsEarned);
+            challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, pointsEarned);
+        }
         
         // 현재 순위 조회
         Long currentRank = challengeRedisRepository.getUserRank(challengeKey, userId);
         
-        log.info("User {} submitted time attack exercise {} completed in {} seconds, earned {} points, total: {}, rank: {}", 
+        log.info("User {} submitted time attack exercise {} completed in {} seconds, earned {} points, final: {}, rank: {}, newRecord: {}", 
                 userId, request.getExerciseId(), request.getCompletionTimeSeconds(), 
-                pointsEarned, totalPoints, currentRank);
+                pointsEarned, finalPoints, currentRank, isNewRecord);
         
         return ChallengeSubmissionResponse.builder()
                 .submissionId(System.currentTimeMillis())
                 .exerciseId(request.getExerciseId())
                 .exerciseName(exerciseResponse.getName())
-                .sets(request.getTargetCount())
                 .durationMinutes(request.getCompletionTimeSeconds() / 60)
                 .pointsEarned(pointsEarned)
-                .totalPoints(totalPoints)
+                .totalPoints(finalPoints)
                 .currentRank(currentRank != null ? currentRank.intValue() : 0)
                 .submittedAt(LocalDateTime.now())
                 .notes(request.getNotes())
@@ -138,14 +136,14 @@ public class ChallengeServiceWithTimeAttack implements ChallengeService {
     /**
      * 타임어택 점수 계산 로직 (빠를수록 높은 점수)
      */
-    private int calculateTimeAttackPoints(Integer completionTimeSeconds, Integer targetCount) {
-        // 기본 점수: 목표 횟수 * 초당 기본 점수
-        int basePoints = targetCount * BASE_POINTS_PER_SECOND;
+    private int calculateTimeAttackPoints(Integer completionTimeSeconds) {
+        // 기본 점수
+        int basePoints = 100;
         
-        // 시간 보너스: 빠를수록 높은 점수 (최대 30초 기준)
-        int timeBonus = Math.max(0, FAST_COMPLETION_THRESHOLD - completionTimeSeconds) * 10;
+        // 시간 보너스: 빠를수록 높은 점수 (최대 60초 기준)
+        int timeBonus = Math.max(0, 60 - completionTimeSeconds) * 5;
         
-        // 빠른 완료 보너스
+        // 빠른 완료 보너스 (30초 이내)
         int fastCompletionBonus = completionTimeSeconds <= FAST_COMPLETION_THRESHOLD ? 
                 BONUS_POINTS_FOR_FAST_COMPLETION : 0;
         

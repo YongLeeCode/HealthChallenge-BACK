@@ -33,18 +33,15 @@ public class ChallengeBatchSubmissionRequest {
         @NotNull(message = "운동 ID는 필수입니다")
         private Long exerciseId;
         
-        // 타임어택용 필드
+        // WORKING_TIME용 필드: exerciseId, durationTimeSeconds
+        private Integer durationTimeSeconds;
+        
+        // WEIGHT용 필드: exerciseId, maxWeightKg, counts
+        private Double maxWeightKg;
+        private Integer counts;
+        
+        // TIME_ATTACK용 필드: exerciseId, completionTimeSeconds
         private Integer completionTimeSeconds;
-        private Integer targetCount;
-        
-        // 무게용 필드
-        private Double weightKg;
-        private Integer sets;
-        private Integer reps;
-        
-        // 지속시간용 필드
-        private Integer durationMinutes;
-        private Integer intensity; // 1-10 스케일
         
         private String exerciseNotes;
     }

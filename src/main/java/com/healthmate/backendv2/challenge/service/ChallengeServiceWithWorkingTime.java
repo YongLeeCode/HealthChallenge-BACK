@@ -49,11 +49,8 @@ public class ChallengeServiceWithWorkingTime implements ChallengeService {
             throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
         }
         
-        // 지속성 점수 계산 (시간과 강도 기반)
-        int pointsEarned = calculateWorkingTimePoints(
-            request.getDurationMinutes(),
-            request.getIntensity()
-        );
+        // 지속성 점수 계산 (시간 기반)
+        int pointsEarned = calculateWorkingTimePoints(request.getDurationTimeSeconds());
         
         // 현재 주간 챌린지 키
         LocalDate currentWeek = getCurrentWeekStart();
@@ -61,29 +58,31 @@ public class ChallengeServiceWithWorkingTime implements ChallengeService {
         
         // 기존 포인트 조회
         Double currentPoints = challengeRedisRepository.getUserPoints(challengeKey, userId);
-        int totalPoints = (currentPoints != null ? currentPoints.intValue() : 0) + pointsEarned;
         
-        // Redis에 포인트 업데이트
-        challengeRedisRepository.addUserPoints(challengeKey, userId, totalPoints);
+        // 최고 기록 갱신 (새 점수가 더 높을 때만 업데이트)
+        boolean isNewRecord = currentPoints == null || pointsEarned > currentPoints.intValue();
+        int finalPoints = isNewRecord ? pointsEarned : (currentPoints != null ? currentPoints.intValue() : 0);
         
-        // 사용자별 포인트 히스토리 저장
-        challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, totalPoints);
+        if (isNewRecord) {
+            challengeRedisRepository.updateUserPointsIfHigher(challengeKey, userId, pointsEarned);
+            challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, pointsEarned);
+        }
         
         // 현재 순위 조회
         Long currentRank = challengeRedisRepository.getUserRank(challengeKey, userId);
         
-        log.info("User {} submitted working time exercise {} for {} minutes with intensity {}, earned {} points, total: {}, rank: {}", 
-                userId, request.getExerciseId(), request.getDurationMinutes(), request.getIntensity(),
-                pointsEarned, totalPoints, currentRank);
+        log.info("User {} submitted working time exercise {} for {} seconds, earned {} points, final: {}, rank: {}, newRecord: {}",
+                userId, request.getExerciseId(), request.getDurationTimeSeconds(),
+                pointsEarned, finalPoints, currentRank, isNewRecord);
         
         return ChallengeSubmissionResponse.builder()
                 .submissionId(System.currentTimeMillis())
                 .exerciseId(request.getExerciseId())
                 .exerciseName(exerciseResponse.getName())
                 .sets(0) // 지속시간 운동은 세트가 아닌 시간 기반
-                .durationMinutes(request.getDurationMinutes())
+                .durationMinutes(request.getDurationTimeSeconds())
                 .pointsEarned(pointsEarned)
-                .totalPoints(totalPoints)
+                .totalPoints(finalPoints)
                 .currentRank(currentRank != null ? currentRank.intValue() : 0)
                 .submittedAt(LocalDateTime.now())
                 .notes(request.getNotes())
@@ -138,21 +137,18 @@ public class ChallengeServiceWithWorkingTime implements ChallengeService {
     /**
      * 지속시간 기반 점수 계산 로직
      */
-    private int calculateWorkingTimePoints(Integer durationMinutes, Integer intensity) {
+    private int calculateWorkingTimePoints(Integer durationTimeSeconds) {
+        // 초를 분으로 변환
+        int durationMinutes = durationTimeSeconds / 60;
+        
         // 기본 점수: 시간 * 분당 기본 점수
         int basePoints = durationMinutes * BASE_POINTS_PER_MINUTE;
-        
-        // 강도 배수 적용 (1-10 스케일)
-        double intensityMultiplier = 1.0 + (intensity - 1) * 0.1; // 1.0 ~ 1.9
-        
-        // 강도 보너스
-        int intensityBonus = intensity * INTENSITY_MULTIPLIER_BASE;
         
         // 지속 보너스 (30분 이상)
         int durationBonus = durationMinutes >= DURATION_BONUS_THRESHOLD ? 
                 DURATION_BONUS_POINTS : 0;
         
-        return (int) Math.round((basePoints + intensityBonus + durationBonus) * intensityMultiplier);
+        return (int) Math.round((basePoints + durationBonus) * 1.2); // 작업시간 1.2배
     }
     
     /**
