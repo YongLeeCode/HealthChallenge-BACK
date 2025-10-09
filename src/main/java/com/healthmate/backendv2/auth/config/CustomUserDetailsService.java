@@ -22,8 +22,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + nickname));
         
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getNickname())
+        return CustomUserPrincipal.builder()
+                .id(user.getId())
+                .nickname(user.getNickname())
                 .password(user.getPassword())
                 .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                 .build();
