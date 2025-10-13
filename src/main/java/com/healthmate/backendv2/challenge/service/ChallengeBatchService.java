@@ -7,8 +7,10 @@ import com.healthmate.backendv2.challenge.dto.TimeAttackSubmissionRequest;
 import com.healthmate.backendv2.challenge.dto.WeightSubmissionRequest;
 import com.healthmate.backendv2.challenge.dto.WorkingTimeSubmissionRequest;
 import com.healthmate.backendv2.challenge.repository.ChallengeRedisRepository;
+import com.healthmate.backendv2.challenge.service.ChallengeTemplateService;
 import com.healthmate.backendv2.exercise.ExerciseType;
 import com.healthmate.backendv2.exercise.MeasurementType;
+import com.healthmate.backendv2.exercise.dto.ExerciseResponse;
 import com.healthmate.backendv2.exercise.service.ExerciseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +29,8 @@ public class ChallengeBatchService {
     
     private final ChallengeRedisRepository challengeRedisRepository;
     private final ExerciseService exerciseService;
-    private final ChallengeServiceWithTimeAttack timeAttackService;
-    private final ChallengeServiceWithWeight weightService;
-    private final ChallengeServiceWithWorkingTime workingTimeService;
+	private final ChallengeService challengeService;
+    private final ChallengeTemplateService challengeTemplateService;
     
     /**
      * 챌린지 전체 제출 및 배치 처리
@@ -38,10 +39,13 @@ public class ChallengeBatchService {
     public ChallengeBatchSubmissionResponse submitChallengeBatch(Long userId, ChallengeBatchSubmissionRequest request) {
         log.info("User {} submitting challenge batch: {}", userId, request.getChallengeId());
         
+        // 운영진이 지정한 운동만 허용하는지 검증
+        validateExerciseSubmission(request);
+        
         List<ChallengeBatchSubmissionResponse.ExerciseSubmissionResult> exerciseResults = new ArrayList<>();
         int totalPointsEarned = 0;
         
-        // 각 운동별로 점수 계산 및 최고 기록 갱신 (트랜잭션 없이)
+        // 각 운동별로 점수 계산 및 최고 기록 갱신
         for (ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission : request.getExercises()) {
             try {
                 ChallengeBatchSubmissionResponse.ExerciseSubmissionResult result = 
@@ -191,67 +195,48 @@ public class ChallengeBatchService {
      * MeasurementType에 따른 점수 계산 (다형성 구현)
      */
     private int calculatePointsByExerciseType(
-            com.healthmate.backendv2.exercise.dto.ExerciseResponse exercise,
+            ExerciseResponse exercise,
             ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        
+
         switch (exercise.getMeasurementType()) {
             case WORKING_TIME:
-                return calculateWorkingTimePoints(submission);
+				challengeService = new ChallengeServiceWithWorkingTime(exercise, submission);
             case WEIGHT:
-                return calculateWeightPoints(submission);
+				challengeService = new ChallengeServiceWithWeight();
             case TIME_ATTACK:
-                return calculateTimeAttackPoints(submission);
+				challengeService = new ChallengeServiceWithTimeAttack();
             default:
                 throw new IllegalArgumentException("지원하지 않는 측정 타입입니다: " + exercise.getMeasurementType());
         }
+		return challengeService.calculatePoints();
     }
+
     
     /**
-     * WORKING_TIME 운동 점수 계산 (지속시간 기반)
+     * 운동 제출 검증 - 운영진이 지정한 운동만 허용
      */
-    private int calculateWorkingTimePoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getDurationTimeSeconds() == null) {
-            throw new IllegalArgumentException("WORKING_TIME 운동에는 지속시간(durationTimeSeconds)이 필요합니다");
+    private void validateExerciseSubmission(ChallengeBatchSubmissionRequest request) {
+        // 현재 활성화된 챌린지 템플릿이 있는지 확인
+        List<Long> allowedExerciseIds = challengeTemplateService.getCurrentActiveExerciseIds();
+        
+        if (allowedExerciseIds.isEmpty()) {
+            log.warn("현재 활성화된 챌린지 템플릿이 없습니다. 모든 운동을 허용합니다.");
+            return; // 활성화된 템플릿이 없으면 기존 방식으로 동작
         }
         
-        int durationMinutes = submission.getDurationTimeSeconds() / 60;
-        int basePoints = durationMinutes * 10; // 분당 10점
-        int durationBonus = durationMinutes >= 30 ? 50 : 0; // 30분 이상 보너스
-        
-        return (int) Math.round((basePoints + durationBonus) * 1.2); // 작업시간 1.2배
-    }
-    
-    /**
-     * WEIGHT 운동 점수 계산 (무게 기반)
-     */
-    private int calculateWeightPoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getMaxWeightKg() == null || submission.getCounts() == null) {
-            throw new IllegalArgumentException("WEIGHT 운동에는 최대무게(maxWeightKg)와 횟수(counts)가 필요합니다");
+        // 제출하려는 운동들이 허용된 운동 목록에 포함되는지 확인
+        for (ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission : request.getExercises()) {
+            if (!allowedExerciseIds.contains(exerciseSubmission.getExerciseId())) {
+                throw new IllegalArgumentException(
+                    String.format("운동 ID %d는 현재 챌린지에서 허용되지 않습니다. 허용된 운동: %s", 
+                        exerciseSubmission.getExerciseId(), allowedExerciseIds)
+                );
+            }
         }
         
-        int basePoints = (int) (submission.getMaxWeightKg() * submission.getCounts() * 10);
-        int countBonus = submission.getCounts() * 5;
-        
-        double weightMultiplier = submission.getMaxWeightKg() >= 50.0 ? 1.2 : 1.0;
-        
-        return (int) Math.round((basePoints + countBonus) * weightMultiplier);
+        log.info("운동 제출 검증 통과: {} 개의 운동이 모두 허용된 운동 목록에 포함됨", request.getExercises().size());
     }
-    
-    /**
-     * TIME_ATTACK 운동 점수 계산
-     */
-    private int calculateTimeAttackPoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getCompletionTimeSeconds() == null) {
-            throw new IllegalArgumentException("TIME_ATTACK 운동에는 완료시간(completionTimeSeconds)이 필요합니다");
-        }
-        
-        int basePoints = 100; // 기본 점수
-        int timeBonus = Math.max(0, 60 - submission.getCompletionTimeSeconds()) * 5; // 빠른 완료 보너스
-        int fastCompletionBonus = submission.getCompletionTimeSeconds() <= 30 ? 100 : 0; // 30초 이내 보너스
-        
-        return basePoints + timeBonus + fastCompletionBonus;
-    }
-    
+
     /**
      * 현재 주의 시작일 (월요일) 계산
      */

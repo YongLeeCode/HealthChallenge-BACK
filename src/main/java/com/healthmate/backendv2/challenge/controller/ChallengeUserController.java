@@ -6,6 +6,7 @@ import com.healthmate.backendv2.challenge.service.ChallengeService;
 import com.healthmate.backendv2.challenge.service.ChallengeServiceWithTimeAttack;
 import com.healthmate.backendv2.challenge.service.ChallengeServiceWithWeight;
 import com.healthmate.backendv2.challenge.service.ChallengeServiceWithWorkingTime;
+import com.healthmate.backendv2.challenge.service.ChallengeTemplateService;
 import com.healthmate.backendv2.challenge.service.LeaderboardService;
 import com.healthmate.backendv2.auth.config.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,67 +20,21 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/challenges")
 @RequiredArgsConstructor
-public class ChallengeController {
+public class ChallengeUserController {
     
     private final ChallengeServiceWithTimeAttack timeAttackService;
     private final ChallengeServiceWithWeight weightService;
     private final ChallengeServiceWithWorkingTime workingTimeService;
     private final LeaderboardService leaderboardService;
     private final ChallengeBatchService challengeBatchService;
+    private final ChallengeTemplateService challengeTemplateService;
     private final JwtUtils jwtUtils;
-    
-    /**
-     * 타임어택 운동 제출 (민첩성)
-     */
-    @PostMapping("/submit/time-attack")
-    public ResponseEntity<ChallengeSubmissionResponse> submitTimeAttackExercise(
-            @Valid @RequestBody TimeAttackSubmissionRequest request,
-            HttpServletRequest httpRequest) {
-        
-        log.info("=== Time Attack Exercise Submission ===");
-        log.info("Request: {}", request);
-        
-        Long userId = getCurrentUserIdFromJWT(httpRequest);
-        log.info("User {} submitting time attack exercise {}", userId, request.getExerciseId());
-        
-        ChallengeSubmissionResponse response = timeAttackService.submitTimeAttackExercise(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    /**
-     * 무게 기반 운동 제출 (근력)
-     */
-    @PostMapping("/submit/weight")
-    public ResponseEntity<ChallengeSubmissionResponse> submitWeightExercise(
-            @Valid @RequestBody WeightSubmissionRequest request,
-            HttpServletRequest httpRequest) {
-        
-        Long userId = getCurrentUserIdFromJWT(httpRequest);
-        log.info("User {} submitting weight exercise {}", userId, request.getExerciseId());
-        
-        ChallengeSubmissionResponse response = weightService.submitWeightExercise(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    /**
-     * 지속시간 기반 운동 제출 (지속성)
-     */
-    @PostMapping("/submit/working-time")
-    public ResponseEntity<ChallengeSubmissionResponse> submitWorkingTimeExercise(
-            @Valid @RequestBody WorkingTimeSubmissionRequest request,
-            HttpServletRequest httpRequest) {
-        
-        Long userId = getCurrentUserIdFromJWT(httpRequest);
-        log.info("User {} submitting working time exercise {}", userId, request.getExerciseId());
-        
-        ChallengeSubmissionResponse response = workingTimeService.submitWorkingTimeExercise(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
     
     /**
      * 챌린지 전체 제출 (배치 처리)
@@ -97,60 +52,6 @@ public class ChallengeController {
         
         ChallengeBatchSubmissionResponse response = challengeBatchService.submitChallengeBatch(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    /**
-     * 현재 주간 챌린지 조회 (타입별)
-     */
-    @GetMapping("/current")
-    public ResponseEntity<WeeklyChallengeResponse> getCurrentChallenge(
-            @RequestParam(defaultValue = "TIME_ATTACK") String challengeType) {
-        
-        ChallengeService service = getChallengeService(challengeType);
-        WeeklyChallengeResponse response = service.getCurrentWeeklyChallenge();
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * 특정 주간 챌린지 조회 (타입별)
-     */
-    @GetMapping("/weekly")
-    public ResponseEntity<WeeklyChallengeResponse> getWeeklyChallenge(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "TIME_ATTACK") String challengeType) {
-        
-        ChallengeService service = getChallengeService(challengeType);
-        WeeklyChallengeResponse response = service.getWeeklyChallenge(date);
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * 현재 사용자 포인트 조회 (타입별)
-     */
-    @GetMapping("/my-points")
-    public ResponseEntity<Integer> getMyCurrentPoints(
-            @RequestParam(defaultValue = "TIME_ATTACK") String challengeType,
-            Authentication authentication) {
-        
-        Long userId = getCurrentUserId(authentication);
-        ChallengeService service = getChallengeService(challengeType);
-        Integer points = service.getUserCurrentPoints(userId);
-        return ResponseEntity.ok(points);
-    }
-    
-    /**
-     * 특정 주간 사용자 포인트 조회 (타입별)
-     */
-    @GetMapping("/my-points/weekly")
-    public ResponseEntity<Integer> getMyWeeklyPoints(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "TIME_ATTACK") String challengeType,
-            Authentication authentication) {
-        
-        Long userId = getCurrentUserId(authentication);
-        ChallengeService service = getChallengeService(challengeType);
-        Integer points = service.getUserWeeklyPoints(userId, date);
-        return ResponseEntity.ok(points);
     }
     
     /**
@@ -194,21 +95,24 @@ public class ChallengeController {
         LeaderboardResponse response = leaderboardService.getUserSurroundingRank(userId, targetDate);
         return ResponseEntity.ok(response);
     }
-    
+
     /**
-     * 챌린지 타입에 따른 서비스 선택
+     * 현재 활성화된 챌린지의 운동 목록 조회 (사용자용)
      */
-    private ChallengeService getChallengeService(String challengeType) {
-        switch (challengeType.toUpperCase()) {
-            case "TIME_ATTACK":
-                return timeAttackService;
-            case "WEIGHT":
-                return weightService;
-            case "WORKING_TIME":
-                return workingTimeService;
-            default:
-                throw new IllegalArgumentException("지원하지 않는 챌린지 타입입니다: " + challengeType);
-        }
+    @GetMapping("/current/exercises")
+    public ResponseEntity<List<Long>> getCurrentActiveExerciseIds() {
+        List<Long> exerciseIds = challengeTemplateService.getCurrentActiveExerciseIds();
+        return ResponseEntity.ok(exerciseIds);
+    }
+
+    /**
+     * 현재 활성화된 챌린지 템플릿 조회 (사용자용)
+     */
+    @GetMapping("/current/template")
+    public ResponseEntity<ChallengeTemplateResponse> getCurrentActiveTemplate() {
+        return challengeTemplateService.getCurrentActiveTemplate()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
     
     /**

@@ -29,20 +29,42 @@ public class ChallengeBatchSubmissionRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class ExerciseSubmission {
+    public static class TimeAttackExerciseSubmission {
         @NotNull(message = "운동 ID는 필수입니다")
         private Long exerciseId;
         
-        // WORKING_TIME용 필드: exerciseId, durationTimeSeconds
-        private Integer durationTimeSeconds;
-        
-        // WEIGHT용 필드: exerciseId, maxWeightKg, counts
-        private Double maxWeightKg;
-        private Integer counts;
-        
         // TIME_ATTACK용 필드: exerciseId, completionTimeSeconds
         private Integer completionTimeSeconds;
-        
+        	
         private String exerciseNotes;
     }
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WorkingTimeExerciseSubmission {
+		@NotNull(message = "운동 ID는 필수입니다")
+		private Long exerciseId;
+
+		// WORKING_TIME용 필드: exerciseId, durationTimeSeconds
+		private Integer durationTimeSeconds;
+
+		private String exerciseNotes;
+	}
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WeightExerciseSubmission {
+		@NotNull(message = "운동 ID는 필수입니다")
+		private Long exerciseId;
+
+		// WEIGHT용 필드: exerciseId, maxWeightKg, counts
+		private Double maxWeightKg;
+		private Integer counts;
+
+		private String exerciseNotes;
+	}
 }
