@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.healthmate.backendv2.exercise.MeasurementType;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,34 +26,27 @@ public class ChallengeBatchSubmissionRequest {
     @NotEmpty(message = "운동 목록은 비어있을 수 없습니다")
     @Valid
     private List<ExerciseSubmission> exercises;
-    
+
     private String notes;
-    
+
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class TimeAttackExerciseSubmission {
-        @NotNull(message = "운동 ID는 필수입니다")
-        private Long exerciseId;
-        
-        // TIME_ATTACK용 필드: exerciseId, completionTimeSeconds
-        private Integer completionTimeSeconds;
-        	
-        private String exerciseNotes;
-    }
-
-	@Getter
-	@NoArgsConstructor
-	@AllArgsConstructor
-	@Builder
-	public static class WorkingTimeExerciseSubmission {
+	@JsonTypeInfo(
+		use = JsonTypeInfo.Id.NAME,
+		include = JsonTypeInfo.As.PROPERTY,
+		property = "type"
+	)
+	@JsonSubTypes({
+		@JsonSubTypes.Type(value = TimeAttackExerciseSubmission.class, name = "TIME_ATTACK"),
+		@JsonSubTypes.Type(value = WorkingTimeExerciseSubmission.class, name = "WORKING_TIME"),
+		@JsonSubTypes.Type(value = WeightExerciseSubmission.class, name = "WEIGHT")
+	})
+	public static abstract class ExerciseSubmission{
 		@NotNull(message = "운동 ID는 필수입니다")
 		private Long exerciseId;
-
-		// WORKING_TIME용 필드: exerciseId, durationTimeSeconds
-		private Integer durationTimeSeconds;
-
+		private MeasurementType type;
 		private String exerciseNotes;
 	}
 
@@ -57,14 +54,24 @@ public class ChallengeBatchSubmissionRequest {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	@Builder
-	public static class WeightExerciseSubmission {
-		@NotNull(message = "운동 ID는 필수입니다")
-		private Long exerciseId;
+    public static class TimeAttackExerciseSubmission extends ExerciseSubmission{
+        private Integer completionTimeSeconds;
+    }
 
-		// WEIGHT용 필드: exerciseId, maxWeightKg, counts
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WorkingTimeExerciseSubmission extends ExerciseSubmission{
+		private Integer durationTimeSeconds;
+	}
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WeightExerciseSubmission extends ExerciseSubmission{
 		private Double maxWeightKg;
 		private Integer counts;
-
-		private String exerciseNotes;
 	}
 }
