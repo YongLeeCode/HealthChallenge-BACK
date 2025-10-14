@@ -2,14 +2,7 @@ package com.healthmate.backendv2.challenge.service;
 
 import com.healthmate.backendv2.challenge.dto.ChallengeBatchSubmissionRequest;
 import com.healthmate.backendv2.challenge.dto.ChallengeBatchSubmissionResponse;
-import com.healthmate.backendv2.challenge.dto.ChallengeSubmissionResponse;
-import com.healthmate.backendv2.challenge.dto.TimeAttackSubmissionRequest;
-import com.healthmate.backendv2.challenge.dto.WeightSubmissionRequest;
-import com.healthmate.backendv2.challenge.dto.WorkingTimeSubmissionRequest;
 import com.healthmate.backendv2.challenge.repository.ChallengeRedisRepository;
-import com.healthmate.backendv2.challenge.service.ChallengeTemplateService;
-import com.healthmate.backendv2.exercise.ExerciseType;
-import com.healthmate.backendv2.exercise.MeasurementType;
 import com.healthmate.backendv2.exercise.dto.ExerciseResponse;
 import com.healthmate.backendv2.exercise.service.ExerciseService;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +22,8 @@ public class ChallengeBatchService {
     
     private final ChallengeRedisRepository challengeRedisRepository;
     private final ExerciseService exerciseService;
-	private final ChallengeService challengeService;
     private final ChallengeTemplateService challengeTemplateService;
+    private final List<ChallengeService> challengeServices;
     
     /**
      * 챌린지 전체 제출 및 배치 처리
@@ -49,7 +42,7 @@ public class ChallengeBatchService {
         for (ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission : request.getExercises()) {
             try {
                 ChallengeBatchSubmissionResponse.ExerciseSubmissionResult result = 
-                    processExerciseSubmissionWithRecordUpdate(userId, exerciseSubmission);
+                    processExerciseSubmissionWithRecordUpdate(exerciseSubmission);
                 exerciseResults.add(result);
                 
                 if ("SUCCESS".equals(result.getStatus())) {
@@ -59,8 +52,8 @@ public class ChallengeBatchService {
                 log.error("Error processing exercise {}: {}", exerciseSubmission.getExerciseId(), e.getMessage());
                 exerciseResults.add(ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
                         .exerciseId(exerciseSubmission.getExerciseId())
-                        .exerciseName("Unknown")
-                        .exerciseType("Unknown")
+                        .exerciseName("unknown")
+                        .exerciseType("unknown")
                         .pointsEarned(0)
                         .status("FAILED")
                         .errorMessage(e.getMessage())
@@ -105,7 +98,7 @@ public class ChallengeBatchService {
      * 개별 운동 제출 처리 (점수 계산 및 최고 기록 갱신, 트랜잭션 없이)
      */
     private ChallengeBatchSubmissionResponse.ExerciseSubmissionResult processExerciseSubmissionWithRecordUpdate(
-            Long userId, ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission) {
+            ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission) {
         
         // 운동 정보 조회
         var exerciseResponse = exerciseService.getById(exerciseSubmission.getExerciseId());
@@ -114,23 +107,7 @@ public class ChallengeBatchService {
         }
         
         try {
-            // 운동 타입에 따른 점수 계산 (트랜잭션 없이)
             int pointsEarned = calculatePointsByExerciseType(exerciseResponse, exerciseSubmission);
-            
-            // 현재 주간 챌린지 키
-            LocalDate currentWeek = getCurrentWeekStart();
-            String challengeKey = challengeRedisRepository.getWeeklyChallengeKey(currentWeek);
-            
-            // 기존 포인트 조회
-            Double currentPoints = challengeRedisRepository.getUserPoints(challengeKey, userId);
-            
-            // 최고 기록 갱신 (새 점수가 더 높을 때만 업데이트)
-            boolean isNewRecord = currentPoints == null || pointsEarned > currentPoints.intValue();
-            
-            if (isNewRecord) {
-                challengeRedisRepository.updateUserPointsIfHigher(challengeKey, userId, pointsEarned);
-            }
-            
             return ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
                     .exerciseId(exerciseSubmission.getExerciseId())
                     .exerciseName(exerciseResponse.getName())
@@ -139,7 +116,6 @@ public class ChallengeBatchService {
                     .status("SUCCESS")
                     .errorMessage(null)
                     .build();
-                    
         } catch (Exception e) {
             log.error("Error calculating points for exercise {}: {}", exerciseSubmission.getExerciseId(), e.getMessage());
             return ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
@@ -192,23 +168,21 @@ public class ChallengeBatchService {
     }
     
     /**
-     * MeasurementType에 따른 점수 계산 (다형성 구현)
+     * MeasurementType에 따른 점수 계산 (Strategy 패턴 사용)
      */
     private int calculatePointsByExerciseType(
             ExerciseResponse exercise,
             ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
 
-        switch (exercise.getMeasurementType()) {
-            case WORKING_TIME:
-				challengeService = new ChallengeServiceWithWorkingTime(exercise, submission);
-            case WEIGHT:
-				challengeService = new ChallengeServiceWithWeight();
-            case TIME_ATTACK:
-				challengeService = new ChallengeServiceWithTimeAttack();
-            default:
-                throw new IllegalArgumentException("지원하지 않는 측정 타입입니다: " + exercise.getMeasurementType());
-        }
-		return challengeService.calculatePoints();
+        // 해당 측정 타입을 지원하는 서비스 찾기
+        ChallengeService challengeService = challengeServices.stream()
+                .filter(service -> service.getSupportedMeasurementType() == submission.getType())
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "지원하지 않는 측정 타입입니다: " + submission.getType()));
+
+        // 해당 서비스로 점수 계산
+        return challengeService.calculatePoints(submission);
     }
 
     

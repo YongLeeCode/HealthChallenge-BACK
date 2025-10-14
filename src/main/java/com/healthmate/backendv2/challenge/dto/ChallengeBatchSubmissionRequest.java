@@ -13,6 +13,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.healthmate.backendv2.exercise.MeasurementType;
+import com.healthmate.backendv2.exercise.service.ExerciseService;
 
 @Getter
 @NoArgsConstructor
