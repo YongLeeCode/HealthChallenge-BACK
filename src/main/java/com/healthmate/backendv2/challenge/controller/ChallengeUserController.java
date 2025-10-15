@@ -27,10 +27,7 @@ import java.util.List;
 @RequestMapping("/api/challenges")
 @RequiredArgsConstructor
 public class ChallengeUserController {
-    
-    private final ChallengeServiceWithTimeAttack timeAttackService;
-    private final ChallengeServiceWithWeight weightService;
-    private final ChallengeServiceWithWorkingTime workingTimeService;
+
     private final LeaderboardService leaderboardService;
     private final ChallengeBatchService challengeBatchService;
     private final ChallengeTemplateService challengeTemplateService;
@@ -39,7 +36,7 @@ public class ChallengeUserController {
     /**
      * 챌린지 전체 제출 (배치 처리)
      */
-    @PostMapping("/submit/batch")
+    @PostMapping("/submit")
     public ResponseEntity<ChallengeBatchSubmissionResponse> submitChallengeBatch(
             @Valid @RequestBody ChallengeBatchSubmissionRequest request,
             HttpServletRequest httpRequest) {

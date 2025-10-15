@@ -1,11 +1,18 @@
 package com.healthmate.backendv2.challenge.controller;
 
+import java.io.IOException;
 import java.util.List;
 
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,20 +25,32 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.healthmate.backendv2.auth.config.JwtUtils;
 import com.healthmate.backendv2.challenge.dto.ChallengeTemplateCreateRequest;
 import com.healthmate.backendv2.challenge.dto.ChallengeTemplateResponse;
+import com.healthmate.backendv2.challenge.service.ChallengeBatchService;
 import com.healthmate.backendv2.challenge.service.ChallengeService;
+import com.healthmate.backendv2.challenge.service.ChallengeServiceWithTimeAttack;
+import com.healthmate.backendv2.challenge.service.ChallengeServiceWithWeight;
+import com.healthmate.backendv2.challenge.service.ChallengeServiceWithWorkingTime;
+import com.healthmate.backendv2.challenge.service.ChallengeTemplateService;
+import com.healthmate.backendv2.challenge.service.LeaderboardService;
 
 @RestController
 @RequestMapping("/api/challenges/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class ChallengeAdminController {
-	// ==================== 운영진용 챌린지 템플릿 관리 API ====================
+
+	private final LeaderboardService leaderboardService;
+	private final ChallengeBatchService challengeBatchService;
+	private final ChallengeTemplateService challengeTemplateService;
+	private final JwtUtils jwtUtils;
 
 	/**
 	 * 챌린지 템플릿 생성 (운영진용)
 	 */
-	@PostMapping("/admin/templates")
+	@PostMapping("/templates")
 	public ResponseEntity<ChallengeTemplateResponse> createChallengeTemplate(
 		@Valid @RequestBody ChallengeTemplateCreateRequest request) {
 
@@ -43,7 +62,7 @@ public class ChallengeAdminController {
 	/**
 	 * 모든 챌린지 템플릿 조회 (운영진용)
 	 */
-	@GetMapping("/admin/templates")
+	@GetMapping("/templates")
 	public ResponseEntity<List<ChallengeTemplateResponse>> getAllChallengeTemplates() {
 		List<ChallengeTemplateResponse> response = challengeTemplateService.getAllChallengeTemplates();
 		return ResponseEntity.ok(response);
@@ -52,7 +71,7 @@ public class ChallengeAdminController {
 	/**
 	 * 활성화된 챌린지 템플릿 조회 (운영진용)
 	 */
-	@GetMapping("/admin/templates/active")
+	@GetMapping("/templates/active")
 	public ResponseEntity<List<ChallengeTemplateResponse>> getActiveChallengeTemplates() {
 		List<ChallengeTemplateResponse> response = challengeTemplateService.getActiveChallengeTemplates();
 		return ResponseEntity.ok(response);
@@ -61,7 +80,7 @@ public class ChallengeAdminController {
 	/**
 	 * 현재 활성화된 챌린지 템플릿 조회 (운영진용)
 	 */
-	@GetMapping("/admin/templates/current")
+	@GetMapping("/templates/current")
 	public ResponseEntity<ChallengeTemplateResponse> getCurrentActiveTemplate() {
 		return challengeTemplateService.getCurrentActiveTemplate()
 			.map(ResponseEntity::ok)
@@ -94,32 +113,6 @@ public class ChallengeAdminController {
 	public ResponseEntity<List<Long>> getCurrentActiveExerciseIds() {
 		List<Long> exerciseIds = challengeTemplateService.getCurrentActiveExerciseIds();
 		return ResponseEntity.ok(exerciseIds);
-	}
-
-	/**
-	 * 현재 활성화된 챌린지 템플릿 조회 (사용자용)
-	 */
-	@GetMapping("/current/template")
-	public ResponseEntity<ChallengeTemplateResponse> getCurrentActiveTemplate() {
-		return challengeTemplateService.getCurrentActiveTemplate()
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
-	}
-
-	/**
-	 * 챌린지 타입에 따른 서비스 선택
-	 */
-	private ChallengeService getChallengeService(String challengeType) {
-		switch (challengeType.toUpperCase()) {
-			case "TIME_ATTACK":
-				return timeAttackService;
-			case "WEIGHT":
-				return weightService;
-			case "WORKING_TIME":
-				return workingTimeService;
-			default:
-				throw new IllegalArgumentException("지원하지 않는 챌린지 타입입니다: " + challengeType);
-		}
 	}
 
 	/**

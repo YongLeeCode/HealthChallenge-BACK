@@ -39,20 +39,12 @@ public class ChallengeTemplateService {
         // 날짜 유효성 검증
         validateDateRange(request.getStartDate(), request.getEndDate());
 
-        // 기간 겹침 확인
-        validateNoOverlappingTemplates(request.getStartDate(), request.getEndDate());
-
-        // 운동 존재 여부 확인
-        validateExercisesExist(request.getExercises());
-
         // 챌린지 템플릿 생성
         ChallengeTemplate template = ChallengeTemplate.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                .status(determineStatus(request.getStartDate(), request.getEndDate()))
-                .isActive(true)
                 .createdAt(LocalDate.now())
                 .build();
 
@@ -84,110 +76,110 @@ public class ChallengeTemplateService {
         return ChallengeTemplateResponse.from(savedTemplate, exerciseResponses);
     }
 
-    /**
-     * 모든 챌린지 템플릿 조회
-     */
-    public List<ChallengeTemplateResponse> getAllChallengeTemplates() {
-        return challengeTemplateRepository.findAll().stream()
-                .map(template -> {
-                    List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
-                            .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
-                            .filter(exercise -> exercise != null)
-                            .toList();
-                    return ChallengeTemplateResponse.from(template, exerciseResponses);
-                })
-                .toList();
-    }
-
-    /**
-     * 활성화된 챌린지 템플릿 조회
-     */
-    public List<ChallengeTemplateResponse> getActiveChallengeTemplates() {
-        return challengeTemplateRepository.findByIsActiveTrue().stream()
-                .map(template -> {
-                    List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
-                            .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
-                            .filter(exercise -> exercise != null)
-                            .toList();
-                    return ChallengeTemplateResponse.from(template, exerciseResponses);
-                })
-                .toList();
-    }
-
-    /**
-     * 현재 활성화된 챌린지 템플릿 조회
-     */
-    public Optional<ChallengeTemplateResponse> getCurrentActiveTemplate() {
-        return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
-                .map(template -> {
-                    List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
-                            .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
-                            .filter(exercise -> exercise != null)
-                            .toList();
-                    return ChallengeTemplateResponse.from(template, exerciseResponses);
-                });
-    }
-
-    /**
-     * 특정 챌린지 템플릿 조회
-     */
-    public Optional<ChallengeTemplateResponse> getChallengeTemplateById(Long id) {
-        return challengeTemplateRepository.findById(id)
-                .map(template -> {
-                    List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
-                            .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
-                            .filter(exercise -> exercise != null)
-                            .toList();
-                    return ChallengeTemplateResponse.from(template, exerciseResponses);
-                });
-    }
-
-    /**
-     * 챌린지 템플릿에 포함된 운동 ID 목록 조회
-     */
-    public List<Long> getExerciseIdsByTemplateId(Long templateId) {
-        return challengeTemplateRepository.findById(templateId)
-                .map(template -> template.getExercises().stream()
-                        .map(ChallengeTemplateExercise::getExerciseId)
-                        .toList())
-                .orElse(List.of());
-    }
-
-    /**
-     * 현재 활성화된 챌린지 템플릿의 운동 ID 목록 조회
-     */
-    public List<Long> getCurrentActiveExerciseIds() {
-        return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
-                .map(template -> template.getExercises().stream()
-                        .map(ChallengeTemplateExercise::getExerciseId)
-                        .toList())
-                .orElse(List.of());
-    }
-
-    /**
-     * 운동 ID가 현재 활성화된 챌린지에 포함되는지 확인
-     */
-    public boolean isExerciseAllowedInCurrentChallenge(Long exerciseId) {
-        List<Long> allowedExerciseIds = getCurrentActiveExerciseIds();
-        return allowedExerciseIds.contains(exerciseId);
-    }
-
-    /**
-     * 챌린지 템플릿 비활성화
-     */
-    @Transactional
-    public void deactivateChallengeTemplate(Long id) {
-        ChallengeTemplate template = challengeTemplateRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 챌린지 템플릿입니다: " + id));
-
-        template = template.toBuilder()
-                .isActive(false)
-                .build();
-
-        challengeTemplateRepository.save(template);
-        log.info("Challenge template deactivated: {}", id);
-    }
-
+    // /**
+    //  * 모든 챌린지 템플릿 조회
+    //  */
+    // public List<ChallengeTemplateResponse> getAllChallengeTemplates() {
+    //     return challengeTemplateRepository.findAll().stream()
+    //             .map(template -> {
+    //                 List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
+    //                         .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
+    //                         .filter(exercise -> exercise != null)
+    //                         .toList();
+    //                 return ChallengeTemplateResponse.from(template, exerciseResponses);
+    //             })
+    //             .toList();
+    // }
+	//
+    // /**
+    //  * 활성화된 챌린지 템플릿 조회
+    //  */
+    // public List<ChallengeTemplateResponse> getActiveChallengeTemplates() {
+    //     return challengeTemplateRepository.findByIsActiveTrue().stream()
+    //             .map(template -> {
+    //                 List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
+    //                         .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
+    //                         .filter(exercise -> exercise != null)
+    //                         .toList();
+    //                 return ChallengeTemplateResponse.from(template, exerciseResponses);
+    //             })
+    //             .toList();
+    // }
+	//
+    // /**
+    //  * 현재 활성화된 챌린지 템플릿 조회
+    //  */
+    // public Optional<ChallengeTemplateResponse> getCurrentActiveTemplate() {
+    //     return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
+    //             .map(template -> {
+    //                 List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
+    //                         .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
+    //                         .filter(exercise -> exercise != null)
+    //                         .toList();
+    //                 return ChallengeTemplateResponse.from(template, exerciseResponses);
+    //             });
+    // }
+	//
+    // /**
+    //  * 특정 챌린지 템플릿 조회
+    //  */
+    // public Optional<ChallengeTemplateResponse> getChallengeTemplateById(Long id) {
+    //     return challengeTemplateRepository.findById(id)
+    //             .map(template -> {
+    //                 List<ExerciseResponse> exerciseResponses = template.getExercises().stream()
+    //                         .map(exercise -> exerciseService.getById(exercise.getExerciseId()))
+    //                         .filter(exercise -> exercise != null)
+    //                         .toList();
+    //                 return ChallengeTemplateResponse.from(template, exerciseResponses);
+    //             });
+    // }
+	//
+    // /**
+    //  * 챌린지 템플릿에 포함된 운동 ID 목록 조회
+    //  */
+    // public List<Long> getExerciseIdsByTemplateId(Long templateId) {
+    //     return challengeTemplateRepository.findById(templateId)
+    //             .map(template -> template.getExercises().stream()
+    //                     .map(ChallengeTemplateExercise::getExerciseId)
+    //                     .toList())
+    //             .orElse(List.of());
+    // }
+	//
+    // /**
+    //  * 현재 활성화된 챌린지 템플릿의 운동 ID 목록 조회
+    //  */
+    // public List<Long> getCurrentActiveExerciseIds() {
+    //     return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
+    //             .map(template -> template.getExercises().stream()
+    //                     .map(ChallengeTemplateExercise::getExerciseId)
+    //                     .toList())
+    //             .orElse(List.of());
+    // }
+	//
+    // /**
+    //  * 운동 ID가 현재 활성화된 챌린지에 포함되는지 확인
+    //  */
+    // public boolean isExerciseAllowedInCurrentChallenge(Long exerciseId) {
+    //     List<Long> allowedExerciseIds = getCurrentActiveExerciseIds();
+    //     return allowedExerciseIds.contains(exerciseId);
+    // }
+	//
+    // /**
+    //  * 챌린지 템플릿 비활성화
+    //  */
+    // @Transactional
+    // public void deactivateChallengeTemplate(Long id) {
+    //     ChallengeTemplate template = challengeTemplateRepository.findById(id)
+    //             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 챌린지 템플릿입니다: " + id));
+	//
+    //     template = template.toBuilder()
+    //             .isActive(false)
+    //             .build();
+	//
+    //     challengeTemplateRepository.save(template);
+    //     log.info("Challenge template deactivated: {}", id);
+    // }
+	//
     // Private helper methods
 
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {
@@ -200,31 +192,22 @@ public class ChallengeTemplateService {
         }
     }
 
-    private void validateNoOverlappingTemplates(LocalDate startDate, LocalDate endDate) {
-        List<ChallengeTemplate> overlappingTemplates = challengeTemplateRepository
-                .findOverlappingTemplates(startDate, endDate);
-
-        if (!overlappingTemplates.isEmpty()) {
-            throw new IllegalArgumentException("기간이 겹치는 활성화된 챌린지가 이미 존재합니다");
-        }
-    }
-
-    private void validateExercisesExist(List<ChallengeTemplateCreateRequest.ExerciseTemplateRequest> exercises) {
-        for (ChallengeTemplateCreateRequest.ExerciseTemplateRequest exercise : exercises) {
-            if (exerciseService.getById(exercise.getExerciseId()) == null) {
-                throw new IllegalArgumentException("존재하지 않는 운동입니다: " + exercise.getExerciseId());
-            }
-        }
-    }
-
-    private ChallengeTemplate.ChallengeStatus determineStatus(LocalDate startDate, LocalDate endDate) {
-        LocalDate now = LocalDate.now();
-        if (now.isBefore(startDate)) {
-            return ChallengeTemplate.ChallengeStatus.UPCOMING;
-        } else if (now.isAfter(endDate)) {
-            return ChallengeTemplate.ChallengeStatus.COMPLETED;
-        } else {
-            return ChallengeTemplate.ChallengeStatus.ACTIVE;
-        }
-    }
+    // private void validateExercisesExist(List<ChallengeTemplateCreateRequest.ExerciseTemplateRequest> exercises) {
+    //     for (ChallengeTemplateCreateRequest.ExerciseTemplateRequest exercise : exercises) {
+    //         if (exerciseService.getById(exercise.getExerciseId()) == null) {
+    //             throw new IllegalArgumentException("존재하지 않는 운동입니다: " + exercise.getExerciseId());
+    //         }
+    //     }
+    // }
+	//
+    // private ChallengeTemplate.ChallengeStatus determineStatus(LocalDate startDate, LocalDate endDate) {
+    //     LocalDate now = LocalDate.now();
+    //     if (now.isBefore(startDate)) {
+    //         return ChallengeTemplate.ChallengeStatus.UPCOMING;
+    //     } else if (now.isAfter(endDate)) {
+    //         return ChallengeTemplate.ChallengeStatus.COMPLETED;
+    //     } else {
+    //         return ChallengeTemplate.ChallengeStatus.ACTIVE;
+    //     }
+    // }
 }

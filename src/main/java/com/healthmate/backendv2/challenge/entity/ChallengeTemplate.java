@@ -39,15 +39,6 @@ public class ChallengeTemplate {
     @NotNull
     private LocalDate endDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @NotNull
-    private ChallengeStatus status;
-
-    @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
-
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDate createdAt = LocalDate.now();
@@ -55,22 +46,6 @@ public class ChallengeTemplate {
     @OneToMany(mappedBy = "challengeTemplate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<ChallengeTemplateExercise> exercises = new ArrayList<>();
-
-    public enum ChallengeStatus {
-        UPCOMING("예정"),
-        ACTIVE("진행중"),
-        COMPLETED("완료");
-
-        private final String description;
-
-        ChallengeStatus(String description) {
-            this.description = description;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-    }
 
     // 편의 메서드
     public void addExercise(ChallengeTemplateExercise exercise) {
@@ -81,17 +56,5 @@ public class ChallengeTemplate {
     public void removeExercise(ChallengeTemplateExercise exercise) {
         exercises.remove(exercise);
         exercise.setChallengeTemplate(null);
-    }
-
-    public boolean isActive() {
-        return isActive != null && isActive;
-    }
-
-    public boolean isUpcoming() {
-        return status == ChallengeStatus.UPCOMING;
-    }
-
-    public boolean isCompleted() {
-        return status == ChallengeStatus.COMPLETED;
     }
 }

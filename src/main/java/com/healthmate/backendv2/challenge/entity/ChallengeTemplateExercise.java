@@ -2,19 +2,23 @@ package com.healthmate.backendv2.challenge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import com.healthmate.backendv2.exercise.MeasurementType;
 
 @Entity
 @Table(name = "challenge_template_exercises")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "exercise_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ChallengeTemplateExercise {
+@SuperBuilder
+public abstract class ChallengeTemplateExercise {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,21 +33,10 @@ public class ChallengeTemplateExercise {
     @NotNull
     private Long exerciseId;
 
-    @Column(name = "target_sets")
-    @Positive
-    private Integer targetSets;
-
-    @Column(name = "target_duration_minutes")
-    @Positive
-    private Integer targetDurationMinutes;
-
-    @Column(name = "points_per_set")
-    @Positive
-    private Integer pointsPerSet;
-
-    @Column(name = "points_per_minute")
-    @Positive
-    private Integer pointsPerMinute;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "measurement_type", nullable = false)
+    @NotNull
+    private MeasurementType measurementType;
 
     @Column(name = "is_required", nullable = false)
     @Builder.Default
@@ -53,28 +46,6 @@ public class ChallengeTemplateExercise {
     @Builder.Default
     private Integer orderIndex = 0;
 
-    // 편의 메서드
-    public void setChallengeTemplate(ChallengeTemplate challengeTemplate) {
-        this.challengeTemplate = challengeTemplate;
-    }
-
-    public boolean isRequired() {
-        return isRequired != null && isRequired;
-    }
-
-    public boolean hasTargetSets() {
-        return targetSets != null && targetSets > 0;
-    }
-
-    public boolean hasTargetDuration() {
-        return targetDurationMinutes != null && targetDurationMinutes > 0;
-    }
-
-    public boolean hasPointsPerSet() {
-        return pointsPerSet != null && pointsPerSet > 0;
-    }
-
-    public boolean hasPointsPerMinute() {
-        return pointsPerMinute != null && pointsPerMinute > 0;
-    }
+    // 각 타입별로 구현해야 하는 추상 메서드
+    public abstract String getTypeSpecificDescription();
 }
