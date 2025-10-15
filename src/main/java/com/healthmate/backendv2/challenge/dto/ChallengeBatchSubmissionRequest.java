@@ -10,6 +10,11 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.healthmate.backendv2.exercise.MeasurementType;
+import com.healthmate.backendv2.exercise.service.ExerciseService;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,30 +27,52 @@ public class ChallengeBatchSubmissionRequest {
     @NotEmpty(message = "운동 목록은 비어있을 수 없습니다")
     @Valid
     private List<ExerciseSubmission> exercises;
-    
+
     private String notes;
-    
+
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class ExerciseSubmission {
-        @NotNull(message = "운동 ID는 필수입니다")
-        private Long exerciseId;
-        
-        // 타임어택용 필드
+	@JsonTypeInfo(
+		use = JsonTypeInfo.Id.NAME,
+		include = JsonTypeInfo.As.PROPERTY,
+		property = "type"
+	)
+	@JsonSubTypes({
+		@JsonSubTypes.Type(value = TimeAttackExerciseSubmission.class, name = "TIME_ATTACK"),
+		@JsonSubTypes.Type(value = WorkingTimeExerciseSubmission.class, name = "WORKING_TIME"),
+		@JsonSubTypes.Type(value = WeightExerciseSubmission.class, name = "WEIGHT")
+	})
+	public static abstract class ExerciseSubmission{
+		@NotNull(message = "운동 ID는 필수입니다")
+		private Long exerciseId;
+		private MeasurementType type;
+		private String exerciseNotes;
+	}
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+    public static class TimeAttackExerciseSubmission extends ExerciseSubmission{
         private Integer completionTimeSeconds;
-        private Integer targetCount;
-        
-        // 무게용 필드
-        private Double weightKg;
-        private Integer sets;
-        private Integer reps;
-        
-        // 지속시간용 필드
-        private Integer durationMinutes;
-        private Integer intensity; // 1-10 스케일
-        
-        private String exerciseNotes;
     }
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WorkingTimeExerciseSubmission extends ExerciseSubmission{
+		private Integer durationTimeSeconds;
+	}
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class WeightExerciseSubmission extends ExerciseSubmission{
+		private Double maxWeightKg;
+		private Integer counts;
+	}
 }

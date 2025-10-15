@@ -2,12 +2,8 @@ package com.healthmate.backendv2.challenge.service;
 
 import com.healthmate.backendv2.challenge.dto.ChallengeBatchSubmissionRequest;
 import com.healthmate.backendv2.challenge.dto.ChallengeBatchSubmissionResponse;
-import com.healthmate.backendv2.challenge.dto.ChallengeSubmissionResponse;
-import com.healthmate.backendv2.challenge.dto.TimeAttackSubmissionRequest;
-import com.healthmate.backendv2.challenge.dto.WeightSubmissionRequest;
-import com.healthmate.backendv2.challenge.dto.WorkingTimeSubmissionRequest;
 import com.healthmate.backendv2.challenge.repository.ChallengeRedisRepository;
-import com.healthmate.backendv2.exercise.ExerciseType;
+import com.healthmate.backendv2.exercise.dto.ExerciseResponse;
 import com.healthmate.backendv2.exercise.service.ExerciseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +22,8 @@ public class ChallengeBatchService {
     
     private final ChallengeRedisRepository challengeRedisRepository;
     private final ExerciseService exerciseService;
-    private final ChallengeServiceWithTimeAttack timeAttackService;
-    private final ChallengeServiceWithWeight weightService;
-    private final ChallengeServiceWithWorkingTime workingTimeService;
+    private final ChallengeTemplateService challengeTemplateService;
+    private final List<ChallengeService> challengeServices;
     
     /**
      * 챌린지 전체 제출 및 배치 처리
@@ -37,14 +32,17 @@ public class ChallengeBatchService {
     public ChallengeBatchSubmissionResponse submitChallengeBatch(Long userId, ChallengeBatchSubmissionRequest request) {
         log.info("User {} submitting challenge batch: {}", userId, request.getChallengeId());
         
+        // 운영진이 지정한 운동만 허용하는지 검증
+        validateExerciseSubmission(request);
+        
         List<ChallengeBatchSubmissionResponse.ExerciseSubmissionResult> exerciseResults = new ArrayList<>();
         int totalPointsEarned = 0;
         
-        // 각 운동별로 점수 계산 (트랜잭션 없이)
+        // 각 운동별로 점수 계산 및 최고 기록 갱신
         for (ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission : request.getExercises()) {
             try {
                 ChallengeBatchSubmissionResponse.ExerciseSubmissionResult result = 
-                    processExerciseSubmission(userId, exerciseSubmission);
+                    processExerciseSubmissionWithRecordUpdate(exerciseSubmission);
                 exerciseResults.add(result);
                 
                 if ("SUCCESS".equals(result.getStatus())) {
@@ -54,8 +52,8 @@ public class ChallengeBatchService {
                 log.error("Error processing exercise {}: {}", exerciseSubmission.getExerciseId(), e.getMessage());
                 exerciseResults.add(ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
                         .exerciseId(exerciseSubmission.getExerciseId())
-                        .exerciseName("Unknown")
-                        .exerciseType("Unknown")
+                        .exerciseName("unknown")
+                        .exerciseType("unknown")
                         .pointsEarned(0)
                         .status("FAILED")
                         .errorMessage(e.getMessage())
@@ -69,24 +67,26 @@ public class ChallengeBatchService {
         
         // 기존 포인트 조회
         Double currentPoints = challengeRedisRepository.getUserPoints(challengeKey, userId);
-        int totalPoints = (currentPoints != null ? currentPoints.intValue() : 0) + totalPointsEarned;
         
-        // Redis에 포인트 업데이트 (배치 처리)
-        challengeRedisRepository.addUserPoints(challengeKey, userId, totalPoints);
+        // 최고 기록 갱신 (배치에서 얻은 총 점수가 더 높을 때만 업데이트)
+        boolean isNewRecord = currentPoints == null || totalPointsEarned > currentPoints.intValue();
+        int finalPoints = isNewRecord ? totalPointsEarned : (currentPoints != null ? currentPoints.intValue() : 0);
         
-        // 사용자별 포인트 히스토리 저장
-        challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, totalPoints);
+        if (isNewRecord) {
+            challengeRedisRepository.updateUserPointsIfHigher(challengeKey, userId, totalPointsEarned);
+            challengeRedisRepository.saveUserPointsHistory(userId, currentWeek, totalPointsEarned);
+        }
         
         // 현재 순위 조회
         Long currentRank = challengeRedisRepository.getUserRank(challengeKey, userId);
         
-        log.info("User {} completed challenge batch with {} total points, rank: {}", 
-                userId, totalPoints, currentRank);
+        log.info("User {} completed challenge batch with {} total points, final: {}, rank: {}, newRecord: {}", 
+                userId, totalPointsEarned, finalPoints, currentRank, isNewRecord);
         
         return ChallengeBatchSubmissionResponse.builder()
                 .challengeId(request.getChallengeId())
                 .totalPointsEarned(totalPointsEarned)
-                .totalPoints(totalPoints)
+                .totalPoints(finalPoints)
                 .currentRank(currentRank != null ? currentRank.intValue() : 0)
                 .submittedAt(LocalDateTime.now())
                 .exerciseResults(exerciseResults)
@@ -95,7 +95,42 @@ public class ChallengeBatchService {
     }
     
     /**
-     * 개별 운동 제출 처리 (점수 계산만, 트랜잭션 없이)
+     * 개별 운동 제출 처리 (점수 계산 및 최고 기록 갱신, 트랜잭션 없이)
+     */
+    private ChallengeBatchSubmissionResponse.ExerciseSubmissionResult processExerciseSubmissionWithRecordUpdate(
+            ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission) {
+        
+        // 운동 정보 조회
+        var exerciseResponse = exerciseService.getById(exerciseSubmission.getExerciseId());
+        if (exerciseResponse == null) {
+            throw new IllegalArgumentException("존재하지 않는 운동입니다: " + exerciseSubmission.getExerciseId());
+        }
+        
+        try {
+            int pointsEarned = calculatePointsByExerciseType(exerciseResponse, exerciseSubmission);
+            return ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
+                    .exerciseId(exerciseSubmission.getExerciseId())
+                    .exerciseName(exerciseResponse.getName())
+                    .exerciseType(String.valueOf(exerciseResponse.getExerciseType()))
+                    .pointsEarned(pointsEarned)
+                    .status("SUCCESS")
+                    .errorMessage(null)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error calculating points for exercise {}: {}", exerciseSubmission.getExerciseId(), e.getMessage());
+            return ChallengeBatchSubmissionResponse.ExerciseSubmissionResult.builder()
+                    .exerciseId(exerciseSubmission.getExerciseId())
+                    .exerciseName(exerciseResponse.getName())
+                    .exerciseType(String.valueOf(exerciseResponse.getExerciseType()))
+                    .pointsEarned(0)
+                    .status("FAILED")
+                    .errorMessage(e.getMessage())
+                    .build();
+        }
+    }
+    
+    /**
+     * 개별 운동 제출 처리 (점수 계산만, 트랜잭션 없이) - 기존 메서드
      */
     private ChallengeBatchSubmissionResponse.ExerciseSubmissionResult processExerciseSubmission(
             Long userId, ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission) {
@@ -133,69 +168,49 @@ public class ChallengeBatchService {
     }
     
     /**
-     * 운동 타입에 따른 점수 계산
+     * MeasurementType에 따른 점수 계산 (Strategy 패턴 사용)
      */
     private int calculatePointsByExerciseType(
-            com.healthmate.backendv2.exercise.dto.ExerciseResponse exercise,
+            ExerciseResponse exercise,
             ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        
-        switch (exercise.getExerciseType()) {
-            case CARDIO:
-                return calculateCardioPoints(submission);
-            case STRENGTH:
-                return calculateStrengthPoints(submission);
-            default:
-                return calculateTimeAttackPoints(submission);
-        }
+
+        // 해당 측정 타입을 지원하는 서비스 찾기
+        ChallengeService challengeService = challengeServices.stream()
+                .filter(service -> service.getSupportedMeasurementType() == submission.getType())
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "지원하지 않는 측정 타입입니다: " + submission.getType()));
+
+        // 해당 서비스로 점수 계산
+        return challengeService.calculatePoints(submission);
     }
+
     
     /**
-     * 카디오 운동 점수 계산 (지속시간 기반)
+     * 운동 제출 검증 - 운영진이 지정한 운동만 허용
      */
-    private int calculateCardioPoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getDurationMinutes() == null || submission.getIntensity() == null) {
-            throw new IllegalArgumentException("카디오 운동에는 지속시간과 강도가 필요합니다");
+    private void validateExerciseSubmission(ChallengeBatchSubmissionRequest request) {
+        // 현재 활성화된 챌린지 템플릿이 있는지 확인
+        List<Long> allowedExerciseIds = challengeTemplateService.getCurrentActiveExerciseIds();
+        
+        if (allowedExerciseIds.isEmpty()) {
+            log.warn("현재 활성화된 챌린지 템플릿이 없습니다. 모든 운동을 허용합니다.");
+            return; // 활성화된 템플릿이 없으면 기존 방식으로 동작
         }
         
-        int basePoints = submission.getDurationMinutes() * 10; // 분당 10점
-        int intensityBonus = submission.getIntensity() * 5; // 강도당 5점
-        int durationBonus = submission.getDurationMinutes() >= 30 ? 50 : 0; // 30분 이상 보너스
-        
-        return (int) Math.round((basePoints + intensityBonus + durationBonus) * 1.5); // 카디오 1.5배
-    }
-    
-    /**
-     * 근력 운동 점수 계산 (무게 기반)
-     */
-    private int calculateStrengthPoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getWeightKg() == null || submission.getSets() == null || submission.getReps() == null) {
-            throw new IllegalArgumentException("근력 운동에는 무게, 세트, 반복 횟수가 필요합니다");
+        // 제출하려는 운동들이 허용된 운동 목록에 포함되는지 확인
+        for (ChallengeBatchSubmissionRequest.ExerciseSubmission exerciseSubmission : request.getExercises()) {
+            if (!allowedExerciseIds.contains(exerciseSubmission.getExerciseId())) {
+                throw new IllegalArgumentException(
+                    String.format("운동 ID %d는 현재 챌린지에서 허용되지 않습니다. 허용된 운동: %s", 
+                        exerciseSubmission.getExerciseId(), allowedExerciseIds)
+                );
+            }
         }
         
-        int basePoints = (int) (submission.getWeightKg() * submission.getSets() * submission.getReps() * 10);
-        int setBonus = submission.getSets() * 20;
-        int repBonus = submission.getReps() * 5;
-        
-        double weightMultiplier = submission.getWeightKg() >= 50.0 ? 1.2 : 1.0;
-        
-        return (int) Math.round((basePoints + setBonus + repBonus) * weightMultiplier);
+        log.info("운동 제출 검증 통과: {} 개의 운동이 모두 허용된 운동 목록에 포함됨", request.getExercises().size());
     }
-    
-    /**
-     * 타임어택 운동 점수 계산
-     */
-    private int calculateTimeAttackPoints(ChallengeBatchSubmissionRequest.ExerciseSubmission submission) {
-        if (submission.getCompletionTimeSeconds() == null || submission.getTargetCount() == null) {
-            throw new IllegalArgumentException("타임어택 운동에는 완료시간과 목표횟수가 필요합니다");
-        }
-        
-        int basePoints = submission.getTargetCount() * 50; // 횟수당 50점
-        int timeBonus = Math.max(0, 30 - submission.getCompletionTimeSeconds()) * 10; // 빠른 완료 보너스
-        int fastCompletionBonus = submission.getCompletionTimeSeconds() <= 30 ? 100 : 0; // 30초 이내 보너스
-        
-        return basePoints + timeBonus + fastCompletionBonus;
-    }
-    
+
     /**
      * 현재 주의 시작일 (월요일) 계산
      */

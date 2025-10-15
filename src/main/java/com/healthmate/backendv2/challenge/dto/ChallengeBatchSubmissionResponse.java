@@ -31,7 +31,7 @@ public class ChallengeBatchSubmissionResponse {
         private String exerciseName;
         private String exerciseType;
         private Integer pointsEarned;
-        private String status; // SUCCESS, FAILED
+        private String status;
         private String errorMessage;
     }
 }
