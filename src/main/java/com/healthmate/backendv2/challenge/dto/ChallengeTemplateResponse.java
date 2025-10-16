@@ -1,6 +1,10 @@
 package com.healthmate.backendv2.challenge.dto;
 
 import com.healthmate.backendv2.challenge.entity.ChallengeTemplate;
+import com.healthmate.backendv2.challenge.entity.ChallengeTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.TimeAttackTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.WeightTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.WorkingTimeTemplateExercise;
 import com.healthmate.backendv2.exercise.dto.ExerciseResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +13,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @Getter
 @NoArgsConstructor
@@ -21,8 +28,6 @@ public class ChallengeTemplateResponse {
     private String description;
     private LocalDate startDate;
     private LocalDate endDate;
-    private String status;
-    private Boolean isActive;
     private LocalDate createdAt;
     private List<ExerciseTemplateResponse> exercises;
 
@@ -30,7 +35,17 @@ public class ChallengeTemplateResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class ExerciseTemplateResponse {
+    @JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type"
+    )
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = TimeAttackExerciseTemplateResponse.class, name = "TIME_ATTACK"),
+        @JsonSubTypes.Type(value = WeightExerciseTemplateResponse.class, name = "WEIGHT"),
+        @JsonSubTypes.Type(value = WorkingTimeExerciseTemplateResponse.class, name = "WORKING_TIME")
+    })
+    public static abstract class ExerciseTemplateResponse {
         private Long id;
         private Long exerciseId;
         private String exerciseName;
@@ -39,28 +54,33 @@ public class ChallengeTemplateResponse {
         private String muscleFocusArea;
         private String exerciseType;
         private String imageUrl;
-        private Integer targetSets;
-        private Integer targetDurationMinutes;
-        private Integer pointsPerSet;
-        private Integer pointsPerMinute;
-        private Boolean isRequired;
         private Integer orderIndex;
     }
 
-    public static ChallengeTemplateResponse from(ChallengeTemplate template) {
-        return ChallengeTemplateResponse.builder()
-                .id(template.getId())
-                .name(template.getName())
-                .description(template.getDescription())
-                .startDate(template.getStartDate())
-                .endDate(template.getEndDate())
-                .status(template.getStatus().name())
-                .isActive(template.isActive())
-                .createdAt(template.getCreatedAt())
-                .exercises(template.getExercises().stream()
-                        .map(exercise -> ExerciseTemplateResponse.from(exercise, null))
-                        .toList())
-                .build();
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TimeAttackExerciseTemplateResponse extends ExerciseTemplateResponse {
+        private Integer pointsPerSecond;
+        private Integer maxPoints;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class WeightExerciseTemplateResponse extends ExerciseTemplateResponse {
+        private Integer pointsPerWeight;
+		private Integer pointsPerCount;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class WorkingTimeExerciseTemplateResponse extends ExerciseTemplateResponse {
+		private Integer pointsPerSecond;
     }
 
     public static ChallengeTemplateResponse from(ChallengeTemplate template, List<ExerciseResponse> exerciseResponses) {
@@ -70,8 +90,6 @@ public class ChallengeTemplateResponse {
                 .description(template.getDescription())
                 .startDate(template.getStartDate())
                 .endDate(template.getEndDate())
-                .status(template.getStatus().name())
-                .isActive(template.isActive())
                 .createdAt(template.getCreatedAt())
                 .exercises(template.getExercises().stream()
                         .map(exercise -> {
@@ -79,25 +97,23 @@ public class ChallengeTemplateResponse {
                                     .filter(er -> er.getId().equals(exercise.getExerciseId()))
                                     .findFirst()
                                     .orElse(null);
-                            return ExerciseTemplateResponse.from(exercise, exerciseResponse);
+                            return fromExerciseTemplate(exercise, exerciseResponse);
                         })
                         .toList())
                 .build();
     }
 
-    public static ExerciseTemplateResponse from(ChallengeTemplate.ChallengeTemplateExercise exercise, ExerciseResponse exerciseResponse) {
-        ExerciseTemplateResponse.ExerciseTemplateResponseBuilder builder = ExerciseTemplateResponse.builder()
-                .id(exercise.getId())
+    /**
+     * 타입별 엔티티를 적절한 Response DTO로 변환
+     */
+    public static ExerciseTemplateResponse fromExerciseTemplate(ChallengeTemplateExercise exercise, ExerciseResponse exerciseResponse) {
+        ExerciseTemplateResponse.ExerciseTemplateResponseBuilder baseBuilder = ExerciseTemplateResponse.builder()
+                .challengeId(exercise.getId())
                 .exerciseId(exercise.getExerciseId())
-                .targetSets(exercise.getTargetSets())
-                .targetDurationMinutes(exercise.getTargetDurationMinutes())
-                .pointsPerSet(exercise.getPointsPerSet())
-                .pointsPerMinute(exercise.getPointsPerMinute())
-                .isRequired(exercise.isRequired())
                 .orderIndex(exercise.getOrderIndex());
 
         if (exerciseResponse != null) {
-            builder.exerciseName(exerciseResponse.getName())
+            baseBuilder.exerciseName(exerciseResponse.getName())
                     .exerciseDescription(exerciseResponse.getDescription())
                     .measurementType(exerciseResponse.getMeasurementType() != null ? exerciseResponse.getMeasurementType().name() : null)
                     .muscleFocusArea(exerciseResponse.getMuscleFocusArea() != null ? exerciseResponse.getMuscleFocusArea().name() : null)
@@ -105,6 +121,50 @@ public class ChallengeTemplateResponse {
                     .imageUrl(exerciseResponse.getImageUrl());
         }
 
-        return builder.build();
+        // 타입별로 적절한 Response 생성
+        if (exercise instanceof TimeAttackTemplateExercise timeAttackExercise) {
+            return TimeAttackExerciseTemplateResponse.builder()
+                    .id(timeAttackExercise.getId())
+                    .exerciseId(timeAttackExercise.getExerciseId())
+                    .exerciseName(exerciseResponse != null ? exerciseResponse.getName() : null)
+                    .exerciseDescription(exerciseResponse != null ? exerciseResponse.getDescription() : null)
+                    .measurementType(exerciseResponse != null && exerciseResponse.getMeasurementType() != null ? exerciseResponse.getMeasurementType().name() : null)
+                    .muscleFocusArea(exerciseResponse != null && exerciseResponse.getMuscleFocusArea() != null ? exerciseResponse.getMuscleFocusArea().name() : null)
+                    .exerciseType(exerciseResponse != null && exerciseResponse.getExerciseType() != null ? exerciseResponse.getExerciseType().name() : null)
+                    .imageUrl(exerciseResponse != null ? exerciseResponse.getImageUrl() : null)
+                    .orderIndex(timeAttackExercise.getOrderIndex())
+                    .pointsPerSecond(timeAttackExercise.getPointsPerSecond())
+                    .maxPoints(timeAttackExercise.getMaxPoints())
+                    .build();
+        } else if (exercise instanceof WeightTemplateExercise weightExercise) {
+            return WeightExerciseTemplateResponse.builder()
+                    .id(weightExercise.getId())
+                    .exerciseId(weightExercise.getExerciseId())
+                    .exerciseName(exerciseResponse != null ? exerciseResponse.getName() : null)
+                    .exerciseDescription(exerciseResponse != null ? exerciseResponse.getDescription() : null)
+                    .measurementType(exerciseResponse != null && exerciseResponse.getMeasurementType() != null ? exerciseResponse.getMeasurementType().name() : null)
+                    .muscleFocusArea(exerciseResponse != null && exerciseResponse.getMuscleFocusArea() != null ? exerciseResponse.getMuscleFocusArea().name() : null)
+                    .exerciseType(exerciseResponse != null && exerciseResponse.getExerciseType() != null ? exerciseResponse.getExerciseType().name() : null)
+                    .imageUrl(exerciseResponse != null ? exerciseResponse.getImageUrl() : null)
+                    .orderIndex(weightExercise.getOrderIndex())
+                    .pointsPerWeight(weightExercise.getPointsPerWeight())
+                    .pointsPerCount(weightExercise.getPointsPerCount())
+                    .build();
+        } else if (exercise instanceof WorkingTimeTemplateExercise workingTimeExercise) {
+            return WorkingTimeExerciseTemplateResponse.builder()
+                    .id(workingTimeExercise.getId())
+                    .exerciseId(workingTimeExercise.getExerciseId())
+                    .exerciseName(exerciseResponse != null ? exerciseResponse.getName() : null)
+                    .exerciseDescription(exerciseResponse != null ? exerciseResponse.getDescription() : null)
+                    .measurementType(exerciseResponse != null && exerciseResponse.getMeasurementType() != null ? exerciseResponse.getMeasurementType().name() : null)
+                    .muscleFocusArea(exerciseResponse != null && exerciseResponse.getMuscleFocusArea() != null ? exerciseResponse.getMuscleFocusArea().name() : null)
+                    .exerciseType(exerciseResponse != null && exerciseResponse.getExerciseType() != null ? exerciseResponse.getExerciseType().name() : null)
+                    .imageUrl(exerciseResponse != null ? exerciseResponse.getImageUrl() : null)
+                    .orderIndex(workingTimeExercise.getOrderIndex())
+                    .pointsPerSecond(workingTimeExercise.getPointsPerSecond())
+                    .build();
+        }
+
+        throw new IllegalArgumentException("지원하지 않는 운동 템플릿 타입입니다: " + exercise.getClass().getSimpleName());
     }
 }

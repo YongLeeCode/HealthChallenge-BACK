@@ -4,6 +4,9 @@ import com.healthmate.backendv2.challenge.dto.ChallengeTemplateCreateRequest;
 import com.healthmate.backendv2.challenge.dto.ChallengeTemplateResponse;
 import com.healthmate.backendv2.challenge.entity.ChallengeTemplate;
 import com.healthmate.backendv2.challenge.entity.ChallengeTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.TimeAttackTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.WeightTemplateExercise;
+import com.healthmate.backendv2.challenge.entity.WorkingTimeTemplateExercise;
 import com.healthmate.backendv2.challenge.repository.ChallengeTemplateRepository;
 import com.healthmate.backendv2.exercise.dto.ExerciseResponse;
 import com.healthmate.backendv2.exercise.service.ExerciseService;
@@ -52,16 +55,7 @@ public class ChallengeTemplateService {
         for (int i = 0; i < request.getExercises().size(); i++) {
             ChallengeTemplateCreateRequest.ExerciseTemplateRequest exerciseRequest = request.getExercises().get(i);
             
-            ChallengeTemplateExercise exercise = ChallengeTemplateExercise.builder()
-                    .exerciseId(exerciseRequest.getExerciseId())
-                    .targetSets(exerciseRequest.getTargetSets())
-                    .targetDurationMinutes(exerciseRequest.getTargetDurationMinutes())
-                    .pointsPerSet(exerciseRequest.getPointsPerSet())
-                    .pointsPerMinute(exerciseRequest.getPointsPerMinute())
-                    .isRequired(exerciseRequest.getIsRequired())
-                    .orderIndex(exerciseRequest.getOrderIndex() != null ? exerciseRequest.getOrderIndex() : i)
-                    .build();
-
+            ChallengeTemplateExercise exercise = createExerciseTemplate(exerciseRequest, i);
             template.addExercise(exercise);
         }
 
@@ -145,16 +139,16 @@ public class ChallengeTemplateService {
     //             .orElse(List.of());
     // }
 	//
-    // /**
-    //  * 현재 활성화된 챌린지 템플릿의 운동 ID 목록 조회
-    //  */
-    // public List<Long> getCurrentActiveExerciseIds() {
-    //     return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
-    //             .map(template -> template.getExercises().stream()
-    //                     .map(ChallengeTemplateExercise::getExerciseId)
-    //                     .toList())
-    //             .orElse(List.of());
-    // }
+    /**
+     * 현재 활성화된 챌린지 템플릿의 운동 ID 목록 조회
+     */
+    public List<Long> getCurrentActiveExerciseIds() {
+        return challengeTemplateRepository.findActiveTemplateByDate(LocalDate.now())
+                .map(template -> template.getExercises().stream()
+                        .map(ChallengeTemplateExercise::getExerciseId)
+                        .toList())
+                .orElse(List.of());
+    }
 	//
     // /**
     //  * 운동 ID가 현재 활성화된 챌린지에 포함되는지 확인
@@ -181,6 +175,54 @@ public class ChallengeTemplateService {
     // }
 	//
     // Private helper methods
+
+    /**
+     * 타입별 운동 템플릿 생성
+     */
+    private ChallengeTemplateExercise createExerciseTemplate(
+            ChallengeTemplateCreateRequest.ExerciseTemplateRequest exerciseRequest, int index) {
+        
+        int orderIndex = exerciseRequest.getOrderIndex() != null ? exerciseRequest.getOrderIndex() : index;
+        
+        return switch (exerciseRequest.getType()) {
+            case TIME_ATTACK -> {
+                if (exerciseRequest instanceof ChallengeTemplateCreateRequest.TimeAttackExerciseTemplateRequest timeAttackRequest) {
+                    yield TimeAttackTemplateExercise.builder()
+                            .exerciseId(timeAttackRequest.getExerciseId())
+                            .measurementType(timeAttackRequest.getType())
+                            .orderIndex(orderIndex)
+                            .pointsPerSecond(timeAttackRequest.getPointsPerSecond())
+                            .maxPoints(timeAttackRequest.getMaxPoints())
+                            .build();
+                }
+                throw new IllegalArgumentException("TIME_ATTACK 타입은 TimeAttackExerciseTemplateRequest여야 합니다");
+            }
+            case WEIGHT -> {
+                if (exerciseRequest instanceof ChallengeTemplateCreateRequest.WeightExerciseTemplateRequest weightRequest) {
+                    yield WeightTemplateExercise.builder()
+                            .exerciseId(weightRequest.getExerciseId())
+                            .measurementType(weightRequest.getType())
+                            .orderIndex(orderIndex)
+                            .pointsPerWeight(weightRequest.getPointsPerWeight())
+                            .pointsPerCount(weightRequest.getPointsPerCount())
+                            .build();
+                }
+                throw new IllegalArgumentException("WEIGHT 타입은 WeightExerciseTemplateRequest여야 합니다");
+            }
+            case WORKING_TIME -> {
+                if (exerciseRequest instanceof ChallengeTemplateCreateRequest.WorkingTimeExerciseTemplateRequest workingTimeRequest) {
+                    yield WorkingTimeTemplateExercise.builder()
+                            .exerciseId(workingTimeRequest.getExerciseId())
+                            .measurementType(workingTimeRequest.getType())
+                            .orderIndex(orderIndex)
+                            .pointsPerSecond(workingTimeRequest.getPointsPerSecond())
+                            .build();
+                }
+                throw new IllegalArgumentException("WORKING_TIME 타입은 WorkingTimeExerciseTemplateRequest여야 합니다");
+            }
+            default -> throw new IllegalArgumentException("지원하지 않는 운동 타입입니다: " + exerciseRequest.getType());
+        };
+    }
 
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {

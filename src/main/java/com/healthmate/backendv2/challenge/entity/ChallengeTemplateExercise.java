@@ -14,9 +14,7 @@ import com.healthmate.backendv2.exercise.MeasurementType;
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "exercise_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @SuperBuilder
 public abstract class ChallengeTemplateExercise {
 
@@ -36,14 +34,9 @@ public abstract class ChallengeTemplateExercise {
     @Enumerated(EnumType.STRING)
     @Column(name = "measurement_type", nullable = false)
     @NotNull
-    private MeasurementType measurementType;
-
-    @Column(name = "is_required", nullable = false)
-    @Builder.Default
-    private Boolean isRequired = true;
+    protected MeasurementType measurementType;
 
     @Column(name = "order_index", nullable = false)
-    @Builder.Default
     private Integer orderIndex = 0;
 
     // 각 타입별로 구현해야 하는 추상 메서드

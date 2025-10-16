@@ -10,30 +10,25 @@ import lombok.experimental.SuperBuilder;
 import com.healthmate.backendv2.exercise.MeasurementType;
 
 @Entity
-@DiscriminatorValue("TIME_ATTACK")
+@DiscriminatorValue("WORKING_TIME")
 @Getter
 @NoArgsConstructor
 @SuperBuilder
-public class TimeAttackTemplateExercise extends ChallengeTemplateExercise {
+public class WorkingTimeTemplateExercise extends ChallengeTemplateExercise {
 
     @Column(name = "points_per_second")
     @Positive
     private Integer pointsPerSecond;
 
-	@Column(name = "max_points")
-	@Positive
-	private Integer maxPoints;
-
-    public TimeAttackTemplateExercise(Integer pointsPerSecond, Integer maxPoints) {
+    public WorkingTimeTemplateExercise(Integer pointsPerSecond) {
         super();
 		this.pointsPerSecond = pointsPerSecond;
-		this.maxPoints = maxPoints;
-        this.measurementType = MeasurementType.TIME_ATTACK;
+        this.measurementType = MeasurementType.WORKING_TIME;
     }
 
     @Override
     public String getTypeSpecificDescription() {
-        return String.format("점수 측정 방법: 최고 점수(%d) - (소모한 시간 x %d)",
-			pointsPerSecond, maxPoints);
+        return String.format("점수 측정 방법: 시간(seconds) * %d",
+            pointsPerSecond);
     }
 }
