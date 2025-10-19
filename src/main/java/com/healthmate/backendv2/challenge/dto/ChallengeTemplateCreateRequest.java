@@ -41,8 +41,6 @@ public class ChallengeTemplateCreateRequest {
 
     @Getter
     @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
@@ -61,38 +59,68 @@ public class ChallengeTemplateCreateRequest {
         private MeasurementType type;
 
         private Integer orderIndex;
+        
+        // Jackson이 필드를 설정할 수 있도록 setter 추가
+        public void setExerciseId(Long exerciseId) {
+            this.exerciseId = exerciseId;
+        }
+        
+        public void setType(MeasurementType type) {
+            this.type = type;
+        }
+        
+        public void setOrderIndex(Integer orderIndex) {
+            this.orderIndex = orderIndex;
+        }
     }
 
     @Getter
     @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     public static class TimeAttackExerciseTemplateRequest extends ExerciseTemplateRequest {
         @Positive(message = "초당 점수는 양수여야 합니다")
         private Integer pointsPerSecond;
 
         @Positive(message = "최대 점수는 양수입니다.")
         private Integer maxPoints;
+        
+        // Jackson이 필드를 설정할 수 있도록 setter 추가
+        public void setPointsPerSecond(Integer pointsPerSecond) {
+            this.pointsPerSecond = pointsPerSecond;
+        }
+        
+        public void setMaxPoints(Integer maxPoints) {
+            this.maxPoints = maxPoints;
+        }
     }
 
     @Getter
     @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     public static class WeightExerciseTemplateRequest extends ExerciseTemplateRequest {
         @Positive(message = "무게(kg)당 점수는 양수여야 합니다")
         private Integer pointsPerWeight;
 
         @Positive(message = "횟수당 점수는 양수여야 합니다")
         private Integer pointsPerCount;
+        
+        // Jackson이 필드를 설정할 수 있도록 setter 추가
+        public void setPointsPerWeight(Integer pointsPerWeight) {
+            this.pointsPerWeight = pointsPerWeight;
+        }
+        
+        public void setPointsPerCount(Integer pointsPerCount) {
+            this.pointsPerCount = pointsPerCount;
+        }
     }
 
     @Getter
     @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     public static class WorkingTimeExerciseTemplateRequest extends ExerciseTemplateRequest {
         @Positive(message = "초당 점수는 양수여야 합니다")
         private Integer pointsPerSecond;
+        
+        // Jackson이 필드를 설정할 수 있도록 setter 추가
+        public void setPointsPerSecond(Integer pointsPerSecond) {
+            this.pointsPerSecond = pointsPerSecond;
+        }
     }
 }

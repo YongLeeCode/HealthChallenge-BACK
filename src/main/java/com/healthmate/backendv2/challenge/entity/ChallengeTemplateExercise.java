@@ -15,6 +15,7 @@ import com.healthmate.backendv2.exercise.MeasurementType;
 @DiscriminatorColumn(name = "exercise_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @SuperBuilder
 public abstract class ChallengeTemplateExercise {
 
@@ -41,4 +42,9 @@ public abstract class ChallengeTemplateExercise {
 
     // 각 타입별로 구현해야 하는 추상 메서드
     public abstract String getTypeSpecificDescription();
+    
+    // 패키지 프라이빗 메서드 - ChallengeTemplate에서만 사용
+    void setChallengeTemplate(ChallengeTemplate challengeTemplate) {
+        this.challengeTemplate = challengeTemplate;
+    }
 }

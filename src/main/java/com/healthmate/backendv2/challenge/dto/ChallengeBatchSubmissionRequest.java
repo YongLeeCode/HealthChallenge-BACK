@@ -33,7 +33,6 @@ public class ChallengeBatchSubmissionRequest {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
 	@JsonTypeInfo(
 		use = JsonTypeInfo.Id.NAME,
 		include = JsonTypeInfo.As.PROPERTY,

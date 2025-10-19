@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,7 +35,7 @@ public class ChallengeTemplateResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
+	@SuperBuilder
     @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
@@ -60,7 +61,7 @@ public class ChallengeTemplateResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
+    @SuperBuilder
     public static class TimeAttackExerciseTemplateResponse extends ExerciseTemplateResponse {
         private Integer pointsPerSecond;
         private Integer maxPoints;
@@ -69,7 +70,7 @@ public class ChallengeTemplateResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
+    @SuperBuilder
     public static class WeightExerciseTemplateResponse extends ExerciseTemplateResponse {
         private Integer pointsPerWeight;
 		private Integer pointsPerCount;
@@ -78,7 +79,7 @@ public class ChallengeTemplateResponse {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
+    @SuperBuilder
     public static class WorkingTimeExerciseTemplateResponse extends ExerciseTemplateResponse {
 		private Integer pointsPerSecond;
     }
@@ -107,20 +108,6 @@ public class ChallengeTemplateResponse {
      * 타입별 엔티티를 적절한 Response DTO로 변환
      */
     public static ExerciseTemplateResponse fromExerciseTemplate(ChallengeTemplateExercise exercise, ExerciseResponse exerciseResponse) {
-        ExerciseTemplateResponse.ExerciseTemplateResponseBuilder baseBuilder = ExerciseTemplateResponse.builder()
-                .challengeId(exercise.getId())
-                .exerciseId(exercise.getExerciseId())
-                .orderIndex(exercise.getOrderIndex());
-
-        if (exerciseResponse != null) {
-            baseBuilder.exerciseName(exerciseResponse.getName())
-                    .exerciseDescription(exerciseResponse.getDescription())
-                    .measurementType(exerciseResponse.getMeasurementType() != null ? exerciseResponse.getMeasurementType().name() : null)
-                    .muscleFocusArea(exerciseResponse.getMuscleFocusArea() != null ? exerciseResponse.getMuscleFocusArea().name() : null)
-                    .exerciseType(exerciseResponse.getExerciseType() != null ? exerciseResponse.getExerciseType().name() : null)
-                    .imageUrl(exerciseResponse.getImageUrl());
-        }
-
         // 타입별로 적절한 Response 생성
         if (exercise instanceof TimeAttackTemplateExercise timeAttackExercise) {
             return TimeAttackExerciseTemplateResponse.builder()
