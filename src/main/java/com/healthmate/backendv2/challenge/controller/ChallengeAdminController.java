@@ -54,56 +54,17 @@ public class ChallengeAdminController {
 	public ResponseEntity<ChallengeTemplateResponse> createChallengeTemplate(
 		@Valid @RequestBody ChallengeTemplateCreateRequest request) {
 
-		log.info("Creating challenge template: {}", request.getName());
-		ChallengeTemplateResponse response = challengeTemplateService.createChallengeTemplate(request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
-	}
-
-	/**
-	 * 모든 챌린지 템플릿 조회 (운영진용)
-	 */
-	@GetMapping("/templates")
-	public ResponseEntity<List<ChallengeTemplateResponse>> getAllChallengeTemplates() {
-		List<ChallengeTemplateResponse> response = challengeTemplateService.getAllChallengeTemplates();
-		return ResponseEntity.ok(response);
-	}
-
-	/**
-	 * 활성화된 챌린지 템플릿 조회 (운영진용)
-	 */
-	@GetMapping("/templates/active")
-	public ResponseEntity<List<ChallengeTemplateResponse>> getActiveChallengeTemplates() {
-		List<ChallengeTemplateResponse> response = challengeTemplateService.getActiveChallengeTemplates();
-		return ResponseEntity.ok(response);
-	}
-
-	/**
-	 * 현재 활성화된 챌린지 템플릿 조회 (운영진용)
-	 */
-	@GetMapping("/templates/current")
-	public ResponseEntity<ChallengeTemplateResponse> getCurrentActiveTemplate() {
-		return challengeTemplateService.getCurrentActiveTemplate()
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
-	}
-
-	/**
-	 * 특정 챌린지 템플릿 조회 (운영진용)
-	 */
-	@GetMapping("/admin/templates/{id}")
-	public ResponseEntity<ChallengeTemplateResponse> getChallengeTemplateById(@PathVariable Long id) {
-		return challengeTemplateService.getChallengeTemplateById(id)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
-	}
-
-	/**
-	 * 챌린지 템플릿 비활성화 (운영진용)
-	 */
-	@DeleteMapping("/admin/templates/{id}")
-	public ResponseEntity<String> deactivateChallengeTemplate(@PathVariable Long id) {
-		challengeTemplateService.deactivateChallengeTemplate(id);
-		return ResponseEntity.ok("챌린지 템플릿이 비활성화되었습니다.");
+		try {
+			log.info("Creating challenge template: {}", request.getName());
+			log.info("Request details - StartDate: {}, EndDate: {}, Exercises count: {}", 
+				request.getStartDate(), request.getEndDate(), request.getExercises().size());
+			
+			ChallengeTemplateResponse response = challengeTemplateService.createChallengeTemplate(request);
+			return ResponseEntity.status(HttpStatus.CREATED).body(response);
+		} catch (Exception e) {
+			log.error("Error creating challenge template: {}", e.getMessage(), e);
+			throw e; // 에러를 다시 던져서 Spring이 적절한 HTTP 상태 코드로 변환하도록 함
+		}
 	}
 
 	/**

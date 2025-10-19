@@ -12,44 +12,28 @@ import com.healthmate.backendv2.exercise.MeasurementType;
 @Entity
 @DiscriminatorValue("WEIGHT")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @SuperBuilder
+@NoArgsConstructor
 public class WeightTemplateExercise extends ChallengeTemplateExercise {
 
-    @Column(name = "target_sets")
+    @Column(name = "points_per_weight")
     @Positive
-    private Integer targetSets;
+    private Integer pointsPerWeight;
 
-    @Column(name = "target_weight_kg")
-    @Positive
-    private Double targetWeightKg;
+	@Column(name = "points_per_count")
+	@Positive
+	private Integer pointsPerCount;
 
-    @Column(name = "points_per_set")
-    @Positive
-    private Integer pointsPerSet;
-
-    @Column(name = "points_per_kg")
-    @Positive
-    private Integer pointsPerKg;
-
-    @Column(name = "heavy_weight_threshold_kg")
-    @Positive
-    private Double heavyWeightThresholdKg;
-
-    @Column(name = "heavy_weight_multiplier")
-    @Positive
-    private Double heavyWeightMultiplier;
-
-    public WeightTemplateExercise() {
+    public WeightTemplateExercise(Integer pointsPerWeight, Integer pointsPerCount) {
         super();
+		this.pointsPerWeight = pointsPerWeight;
+		this.pointsPerCount = pointsPerCount;
         this.measurementType = MeasurementType.WEIGHT;
     }
 
     @Override
     public String getTypeSpecificDescription() {
-        return String.format("목표 세트: %d세트, 목표 무게: %.1fkg, 세트당 점수: %d점", 
-            targetSets, targetWeightKg, pointsPerSet);
+        return String.format("점수 측정 방법: 무게 점수(사용 기구 무게 x %d) + (성공 횟수 x %d)",
+            pointsPerWeight, pointsPerCount);
     }
 }
