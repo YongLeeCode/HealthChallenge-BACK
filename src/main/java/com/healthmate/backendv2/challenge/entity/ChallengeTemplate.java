@@ -41,15 +41,16 @@ public class ChallengeTemplate {
 
     @Column(name = "created_at", nullable = false)
     @Builder.Default
-    private LocalDate createdAt = LocalDate.now();
+    private LocalDate createdAt;
 
-    @OneToMany(mappedBy = "challengeTemplate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ElementCollection
+    @CollectionTable(name = "challenge_template_unit_ids", joinColumns = @JoinColumn(name = "template_id"))
+    @Column(name = "unit_id", nullable = false)
+    @OrderColumn(name = "order_index")
     @Builder.Default
-    private List<ChallengeTemplateExercise> exercises = new ArrayList<>();
-
+    private List<Long> exerciseUnitIds = new ArrayList<>();
     // 편의 메서드
-    public void addExercise(ChallengeTemplateExercise exercise) {
-        exercises.add(exercise);
-        exercise.setChallengeTemplate(this);
+    public void addExerciseUnitId(Long unitId) {
+        exerciseUnitIds.add(unitId);
     }
 }
