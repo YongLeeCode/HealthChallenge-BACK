@@ -52,31 +52,4 @@ public class ChallengeTemplate {
         exercises.add(exercise);
         exercise.setChallengeTemplate(this);
     }
-
-    public void removeExercise(ChallengeTemplateExercise exercise) {
-        exercises.remove(exercise);
-        exercise.setChallengeTemplate(null);
-    }
-
-    // 타입별 운동 조회 메서드들
-    public List<TimeAttackTemplateExercise> getTimeAttackExercises() {
-        return exercises.stream()
-                .filter(ex -> ex instanceof TimeAttackTemplateExercise)
-                .map(ex -> (TimeAttackTemplateExercise) ex)
-                .toList();
-    }
-
-    public List<WeightTemplateExercise> getWeightExercises() {
-        return exercises.stream()
-                .filter(ex -> ex instanceof WeightTemplateExercise)
-                .map(ex -> (WeightTemplateExercise) ex)
-                .toList();
-    }
-
-    public List<WorkingTimeTemplateExercise> getWorkingTimeExercises() {
-        return exercises.stream()
-                .filter(ex -> ex instanceof WorkingTimeTemplateExercise)
-                .map(ex -> (WorkingTimeTemplateExercise) ex)
-                .toList();
-    }
 }

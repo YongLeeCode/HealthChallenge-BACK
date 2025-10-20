@@ -11,22 +11,16 @@ import com.healthmate.backendv2.exercise.MeasurementType;
 
 @Entity
 @Table(name = "challenge_template_exercises")
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "exercise_type", discriminatorType = DiscriminatorType.STRING)
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "exercise_type")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
 public abstract class ChallengeTemplateExercise {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "challenge_template_id", nullable = false)
-    @NotNull
-    private ChallengeTemplate challengeTemplate;
 
     @Column(name = "exercise_id", nullable = false)
     @NotNull
@@ -42,9 +36,4 @@ public abstract class ChallengeTemplateExercise {
 
     // 각 타입별로 구현해야 하는 추상 메서드
     public abstract String getTypeSpecificDescription();
-    
-    // 패키지 프라이빗 메서드 - ChallengeTemplate에서만 사용
-    void setChallengeTemplate(ChallengeTemplate challengeTemplate) {
-        this.challengeTemplate = challengeTemplate;
-    }
 }
