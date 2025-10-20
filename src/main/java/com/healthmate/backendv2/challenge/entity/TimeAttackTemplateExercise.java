@@ -24,12 +24,6 @@ public class TimeAttackTemplateExercise extends ChallengeTemplateExercise {
 	@Positive
 	private Integer maxPoints;
 
-    public TimeAttackTemplateExercise(Integer pointsPerSecond, Integer maxPoints) {
-        super();
-		this.pointsPerSecond = pointsPerSecond;
-		this.maxPoints = maxPoints;
-        this.measurementType = MeasurementType.TIME_ATTACK;
-    }
 
     @Override
     public String getTypeSpecificDescription() {

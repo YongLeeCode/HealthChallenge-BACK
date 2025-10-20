@@ -56,8 +56,9 @@ public class ChallengeAdminController {
 
 		try {
 			log.info("Creating challenge template: {}", request.getName());
-			log.info("Request details - StartDate: {}, EndDate: {}, Exercises count: {}", 
-				request.getStartDate(), request.getEndDate(), request.getExercises().size());
+			log.info("Request details - StartDate: {}, EndDate: {}, UnitIds count: {}", 
+				request.getStartDate(), request.getEndDate(), 
+				request.getExerciseUnitIds() != null ? request.getExerciseUnitIds().size() : 0);
 			
 			ChallengeTemplateResponse response = challengeTemplateService.createChallengeTemplate(request);
 			return ResponseEntity.status(HttpStatus.CREATED).body(response);
